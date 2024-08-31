@@ -1,0 +1,132 @@
+import type { Browser, Page } from "puppeteer";
+import puppeteer from "puppeteer-extra";
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteer.use(StealthPlugin());
+
+export const RUT = process.env.RUT || "";
+const PASS = process.env.PASS || "";
+
+export class ScrapService {
+  private browser: Browser | null = null;
+  private page: Page | null = null;
+
+  async init() {
+    this.browser = await puppeteer.launch({
+      headless: false,
+      defaultViewport: null,
+      slowMo: 400,
+    });
+    this.page = await this.browser.newPage();
+    await this.page.goto(
+      "https://oficinajudicialvirtual.pjud.cl/home/index.php",
+      {
+        waitUntil: "domcontentloaded",
+        timeout: 0,
+      }
+    );
+
+    await this.login();
+  }
+
+  async simuleBodyAction() {
+    return this.page?.evaluate(() => {
+      document.querySelector("body")?.click();
+    });
+  }
+
+  getPage(): Page {
+    if (!this.page) throw new Error("Undefined page property");
+    return this.page;
+  }
+
+  private async login() {
+    await this.page?.evaluate(() => {
+      eval("AutenticaCUnica();");
+    });
+    await this.timeout(4000);
+
+    await this.page?.waitForSelector("input#uname", { timeout: 0 });
+    await this.page?.waitForSelector('input[type="password"]', { timeout: 0 });
+
+    await this.page?.type("input#uname", RUT);
+    await this.page?.type('input[type="password"]', PASS);
+    await this.page?.click("button#login-submit");
+    await this.page?.waitForNavigation({
+      waitUntil: "domcontentloaded",
+      timeout: 0,
+    });
+    await this.timeout(2000);
+  }
+
+  async clickElement(selector: string, delay: number): Promise<void> {
+    await this.page?.waitForSelector(selector, { timeout: 0 });
+    await this.page?.click(selector);
+    await this.timeout(delay);
+  }
+
+  async waitForSelector(selector: string, delay = 1000): Promise<void> {
+    await this.page?.waitForSelector(selector, { timeout: 0 });
+    await this.timeout(delay);
+  }
+
+  async extractPDF(pdfUrl: string) {
+    return await this.page?.evaluate(async (pdfUrl) => {
+      const res = await fetch(pdfUrl, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch PDF");
+      }
+
+      const buffer = await res.arrayBuffer();
+      return Array.from(new Uint8Array(buffer));
+    }, pdfUrl);
+  }
+
+  async execute(script: string, delay = 4000): Promise<void> {
+    await this.page?.evaluate((script) => eval(script), script);
+    await this.timeout(delay);
+  }
+
+  public timeout(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async close(): Promise<void> {
+    await this.browser?.close();
+  }
+}
+
+// export async function scraper(
+//   url = "https://oficinajudicialvirtual.pjud.cl/home/index.php"
+// ) {
+//   const browser = await puppeteer.launch({
+//     headless: false,
+//     defaultViewport: null,
+//     slowMo: 400,
+//   });
+//   const page = await browser.newPage();
+//   await page.goto(url, {
+//     waitUntil: "domcontentloaded",
+//     timeout: 0,
+//   });
+
+//   await page.evaluate(() => {
+//     eval("AutenticaCUnica();");
+//   });
+//   await timeout(4000);
+
+//   await page.waitForSelector("input#uname", { timeout: 0 });
+//   await page.waitForSelector('input[type="password"]', { timeout: 0 });
+
+//   await page.type("input#uname", RUT);
+//   await page.type('input[type="password"]', PASS);
+//   await page.click("button#login-submit");
+//   await page.waitForNavigation({
+//     waitUntil: "domcontentloaded",
+//     timeout: 0,
+//   });
+//   await timeout(2000);
+// }
