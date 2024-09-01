@@ -1,4 +1,3 @@
-import path from "path";
 import { ScrapService } from "../plugins";
 import { FileSystemService } from "../plugins/file.plugin";
 import {
@@ -9,7 +8,6 @@ import {
   Movement,
 } from "./civil-cause.types";
 import { Pagination } from "./pagination";
-import axios from "axios";
 
 export class CivilCauseScrap {
   private readonly anchors: Array<Anchor>;
