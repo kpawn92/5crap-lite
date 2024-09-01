@@ -10,32 +10,47 @@ import {
 import { Pagination } from "./pagination";
 
 export class CivilCauseScrap {
-  private readonly anchors: Array<Anchor>;
-  private readonly causes: Array<CauseCivilPrimitives>;
+  private readonly anchors: Array<Anchor> = [];
+  private readonly causes: Array<CauseCivilPrimitives> = [];
 
   constructor(
     private readonly scrap: ScrapService,
     private readonly fileService: FileSystemService
-  ) {
-    this.anchors = [];
-    this.causes = [];
+  ) {}
+
+  async init(): Promise<void> {
+    try {
+      await this.scrap.init();
+      console.log("Scrap service initialized.");
+    } catch (error) {
+      console.error("Error initializing scrap service:", error);
+      throw error;
+    }
   }
 
-  async init() {
-    await this.scrap.init();
+  async finish(): Promise<void> {
+    try {
+      // this.fileService.write(this.causes, new Date().toISOString());
+      // console.log("Causes data saved to JSON file.");
+    } catch (error) {
+      console.error("Error saving causes data:", error);
+      throw error;
+    } finally {
+      await this.scrap.close();
+      console.log("Scrap service closed.");
+    }
   }
 
-  async finish() {
-    this.fileService.write(this.causes);
-    console.log("File causes to json created");
-    return this.scrap.close();
-  }
-
-  async navegateTabCivilCause() {
-    await this.scrap.clickElement('a[onclick="misCausas();"]', 3500);
-    await this.scrap.clickElement("a#civilTab", 3500);
-    await this.scrap.simuleBodyAction();
-    console.log("Navegation tab civil");
+  async navigateToCivilCausesTab(): Promise<void> {
+    try {
+      await this.scrap.clickElement('a[onclick="misCausas();"]', 3500);
+      await this.scrap.clickElement("a#civilTab", 3500);
+      await this.scrap.simuleBodyAction();
+      console.log("Navigated to civil causes tab.");
+    } catch (error) {
+      console.error("Error navigating to civil causes tab:", error);
+      throw error;
+    }
   }
 
   async applyActiveFilter() {
@@ -67,195 +82,241 @@ export class CivilCauseScrap {
   }
 
   async collectCauses() {
-    await this.scrap.waitForSelector("tbody#verDetalleMisCauCiv", 500);
-    await this.scrap.waitForSelector("div.loadTotalCiv", 500);
-    // await this.scrap.waitForSelector("a#sigId", 500);
-    await this.scrap.simuleBodyAction();
+    try {
+      await this.scrap.waitForSelector("tbody#verDetalleMisCauCiv", 3000);
+      // await this.scrap.waitForSelector("div.loadTotalCiv", 500);
+      await this.scrap.simuleBodyAction();
 
-    const totalItem = await this.page.evaluate(() => {
+      const totalItems = await this.getTotalItems();
+      const pagination = Pagination.calculate(totalItems);
+      const totalPages = pagination.length;
+      console.log(`Total items: ${totalItems}, Total pages: ${totalPages}`);
+
+      for (const page of pagination) {
+        await this.collectAnchors();
+        if (page < totalPages) {
+          await this.goToNextPage();
+        }
+      }
+      console.log(`Total anchors collected: ${this.anchors.length}`);
+    } catch (error) {
+      console.error("Error collecting causes:", error);
+      throw error;
+    }
+  }
+
+  private async goToNextPage(): Promise<void> {
+    try {
+      await this.page.evaluate(() => {
+        const nextButton = document.querySelector<HTMLAnchorElement>("a#sigId");
+        nextButton?.click();
+      });
+      await this.scrap.timeout(3000);
+      await this.scrap.waitForSelector("tbody#verDetalleMisCauCiv", 5000);
+      console.log("Navigated to next page.");
+    } catch (error) {
+      console.error("Error navigating to next page:", error);
+      throw error;
+    }
+  }
+
+  private async getTotalItems(): Promise<number> {
+    const totalItemsText = await this.page.evaluate(() => {
       return document.querySelector("div.loadTotalCiv>b")?.textContent || "0";
     });
-    const pagination = Pagination.run(+totalItem);
-    console.log("Pagination: ", pagination);
-    // await this.page.evaluate(() => {
-    //   window.scrollTo(document.body.scrollWidth, document.body.scrollHeight);
-    // });
+    const totalItems = parseInt(totalItemsText, 10);
+    return isNaN(totalItems) ? 0 : totalItems;
+  }
 
-    for (const page of pagination) {
-      const anchors = await this.collectAnchors();
-
-      await this.page.evaluate(() => {
-        const next = document.querySelector("a#sigId") as HTMLAnchorElement;
-        return next?.click();
+  private async collectAnchors(): Promise<void> {
+    try {
+      const anchorsOnPage = await this.page.evaluate(() => {
+        const rows = Array.from(
+          document.querySelectorAll("tbody#verDetalleMisCauCiv>tr")
+        );
+        return rows
+          .map(
+            (row) =>
+              row
+                .querySelector('a[href="#modalAnexoCausaCivil"]')
+                ?.getAttribute("onclick") || ""
+          )
+          .filter((script) => script.length > 0);
       });
-      console.log("Page:", page);
-      console.log("Anchors:", anchors.length);
-      await this.scrap.timeout(3000);
+
+      const formattedAnchors = anchorsOnPage.map((script) => ({ script }));
+      this.anchors.push(...formattedAnchors);
+      console.log(
+        `Collected ${formattedAnchors.length} anchors on current page.`
+      );
+    } catch (error) {
+      console.error("Error collecting anchors:", error);
+      throw error;
     }
   }
 
-  private async collectAnchors() {
-    await this.scrap.waitForSelector("tbody#verDetalleMisCauCiv");
+  async collectDetails(): Promise<void> {
+    try {
+      for (const [index, anchor] of this.anchors.entries()) {
+        console.log(`Processing cause ${index + 1}/${this.anchors.length}...`);
+        await this.scrap.execute(anchor.script);
+        await this.scrap.timeout(1500);
 
-    const anchorElements = await this.page.evaluate(() => {
-      const rows = Array.from(
-        document.querySelectorAll("tbody#verDetalleMisCauCiv>tr")
-      );
+        const causeDetails = await this.extractCauseDetails();
+        const movementsHistory = await this.extractMovementsHistory();
+        const litigants = await this.extractLitigants();
+        console.table(causeDetails);
+        console.table(movementsHistory);
+        console.table(litigants);
 
-      return rows.map(
-        (row) =>
-          row
-            .querySelector('a[href="#modalAnexoCausaCivil"]')
-            ?.getAttribute("onclick") || ""
-      );
-    });
-
-    for (const anchor of anchorElements) {
-      anchor.length > 0 &&
-        this.anchors.push({
-          script: anchor,
+        this.causes.push({
+          ...causeDetails,
+          movementsHistory,
+          litigants,
         });
-    }
 
-    return this.anchors;
-  }
-
-  async collectDetail() {
-    this.causes.length = 0;
-
-    for (const anchor of this.anchors) {
-      await this.scrap.execute(anchor.script);
-      await this.scrap.timeout(1500);
-      const cause = await this.extractDetail();
-      console.log("Cause extract: ", cause);
-      await this.scrap.timeout(2000);
-
-      const movementsHistory = await this.extractHistory();
-      console.log("MovementHistory: ", movementsHistory);
-
-      const litigants = await this.extractLitigant();
-      console.log("Litigant: ", litigants);
-
-      this.causes.push({
-        ...cause,
-        movementsHistory,
-        litigants,
-      });
-      await this.scrap.timeout(2000);
+        // await this.closeModal();
+        await this.scrap.timeout(2000);
+      }
+      console.log(`Total causes collected: ${this.causes.length}`);
+    } catch (error) {
+      console.error("Error collecting details:", error);
+      throw error;
     }
   }
 
-  private async extractDetail(): Promise<
+  private async extractCauseDetails(): Promise<
     Omit<CauseCivilPrimitives, "movementsHistory" | "litigants">
   > {
-    await this.scrap.waitForSelector(
-      'div[style="background-color:#F9F9F9"]',
-      500
-    );
-    const causesScrap = await this.page.evaluate(() => {
-      const cells = Array.from(
-        document.querySelectorAll(
-          'div[style="background-color:#F9F9F9"]>table:nth-child(1) td'
-        )
+    try {
+      await this.scrap.waitForSelector(
+        'div[style="background-color:#F9F9F9"]',
+        5000
       );
 
-      const book =
-        document.querySelector("select#selCuaderno>option[selected]")
-          ?.textContent || "";
+      const causeDetails = await this.page.evaluate(() => {
+        const getTextContent = (selector: string): string =>
+          document.querySelector(selector)?.textContent?.trim() || "";
 
-      const getData = (index: number, prefix: string) =>
-        cells[index]?.textContent?.trim().replace(prefix, "").trim() || "";
+        const cells = Array.from(
+          document.querySelectorAll(
+            'div[style="background-color:#F9F9F9"] > table:nth-child(1) td'
+          )
+        ).map((cell) => cell.textContent?.trim() || "");
+
+        return {
+          rol: cells[0]?.replace("ROL:", "").trim() || "",
+          admission: cells[1]?.replace("F. Ing.:", "").trim() || "",
+          cover: cells[2]?.trim() || "",
+          estAdmin: cells[3]?.replace("Est. Adm.:", "").trim() || "",
+          process: cells[4]?.replace("Proc.:", "").trim() || "",
+          location: cells[5]?.replace("Ubicación:", "").trim() || "",
+          processState: cells[6]?.replace("Estado Proc.:", "").trim() || "",
+          stage: cells[7]?.replace("Etapa:", "").trim() || "",
+          court: cells[8]?.replace("Tribunal:", "").trim() || "",
+          book: getTextContent("select#selCuaderno>option[selected]"),
+        };
+      });
 
       return {
-        rol: getData(0, "ROL:"),
-        admission: getData(1, "F. Ing.:"),
-        cover: getData(2, ""),
-        estAdmin: getData(3, "Est. Adm.:"),
-        process: getData(4, "Proc.:"),
-        location: getData(5, "Ubicación:"),
-        processState: getData(6, "Estado Proc.:"),
-        stage: getData(7, "Etapa:"),
-        court: getData(8, "Tribunal:"),
-        book,
+        ...causeDetails,
+        admission: this.parseDate(causeDetails.admission),
       };
-    });
-
-    return {
-      ...causesScrap,
-      admission: this.ensureDate(causesScrap.admission),
-    };
+    } catch (error) {
+      console.error("Error extracting cause details:", error);
+      throw error;
+    }
   }
 
-  private async extractHistory(): Promise<Movement[]> {
-    await this.scrap.waitForSelector("div#loadHistCuadernoCiv", 500);
+  private async extractMovementsHistory(): Promise<Movement[]> {
+    try {
+      await this.scrap.waitForSelector("div#loadHistCuadernoCiv", 5000);
 
-    const historiesScrap = await this.page.evaluate(() => {
-      const container = document.querySelector("div#loadHistCuadernoCiv");
-      const rowsNode =
-        container?.querySelector("table>tbody")?.querySelectorAll("tr") || [];
+      const movements = await this.page.evaluate(() => {
+        const container = document.querySelector<HTMLDivElement>(
+          "div#loadHistCuadernoCiv"
+        );
+        const table = container?.querySelector("table");
 
-      const rows = Array.from(rowsNode);
-      return rows.map((row) => {
-        const getData = (index: number) =>
-          cells[index]?.textContent?.trim() || "";
+        const rows = Array.from(table?.querySelectorAll("tbody>tr") || []);
 
-        const cells = Array.from(row.querySelectorAll("td"));
+        return rows.map((row) => {
+          const cells = Array.from(row.querySelectorAll("td"));
 
-        const forms = Array.from(cells[1].querySelectorAll("form"));
-        const collectDocumentURL = forms.map((form) => {
-          const action = form.action;
-          const query = form.querySelector("input")?.name;
-          const token = form.querySelector("input")?.value;
+          const invoice = cells[0]?.textContent?.trim() || "";
+          const stage = cells[3]?.textContent?.trim() || "";
+          const procedure = cells[4]?.textContent?.trim() || "";
+          const descProcedure = cells[5]?.textContent?.trim() || "";
+          const dateProcedure = cells[6]?.textContent?.trim() || "";
+          const pageNumber = parseInt(cells[7]?.textContent?.trim() || "0", 10);
 
-          return `${action}?${query}=${token}`;
+          const documentForms = Array.from(
+            cells[1]?.querySelectorAll("form") || []
+          );
+          const documents = documentForms.map((form) => {
+            const action = form.getAttribute("action") || "";
+            const input = form.querySelector("input");
+            const queryName = input?.getAttribute("name") || "";
+            const queryValue = input?.getAttribute("value") || "";
+            const url = `${action}?${queryName}=${queryValue}`;
+
+            return url;
+          });
+
+          return {
+            invoice,
+            document: documents,
+            stage,
+            procedure,
+            descProcedure,
+            dateProcedure,
+            page: isNaN(pageNumber) ? 0 : pageNumber,
+          };
         });
-        return {
-          invoice: getData(0),
-          document: collectDocumentURL,
-          stage: getData(3),
-          procedure: getData(4),
-          descProcedure: getData(5),
-          dateProcedure: getData(6),
-          page: +getData(7),
-        };
       });
-    });
 
-    return historiesScrap.map((history) => {
-      return {
-        ...history,
-        dateProcedure: this.ensureDate(history.dateProcedure),
-      };
-    });
+      return movements.map((movement) => ({
+        ...movement,
+        dateProcedure: this.parseDate(movement.dateProcedure),
+      }));
+    } catch (error) {
+      console.error("Error extracting movements history:", error);
+      throw error;
+    }
   }
+  private async extractLitigants(): Promise<Litigant[]> {
+    try {
+      await this.page.click('a[href="#litigantesCiv"]');
+      await this.scrap.timeout(1500);
 
-  private async extractLitigant(): Promise<Litigant[]> {
-    await this.page.click('a[href="#litigantesCiv"]');
-    await this.scrap.timeout(1200);
-    return this.page.evaluate(() => {
-      const container = document.querySelector(
-        "div#litigantesCiv"
-      ) as HTMLDivElement;
-      const rows = Array.from(container.querySelectorAll("table>tbody>tr"));
-      return rows.map((row) => {
-        const cells = Array.from(row.querySelectorAll("td"));
-        const getData = (index: number) =>
-          cells[index]?.textContent?.trim() || "";
+      const litigants = await this.page.evaluate(() => {
+        const rows = Array.from(
+          document.querySelectorAll("div#litigantesCiv table > tbody > tr")
+        );
 
-        return {
-          participant: getData(0),
-          rut: getData(1),
-          person: getData(2),
-          name: getData(3),
-        };
+        return rows.map((row) => {
+          const cells = Array.from(row.querySelectorAll("td"));
+          return {
+            participant: cells[0]?.textContent?.trim() || "",
+            rut: cells[1]?.textContent?.trim() || "",
+            person: cells[2]?.textContent?.trim() || "",
+            name: cells[3]?.textContent?.trim() || "",
+          };
+        });
       });
-    });
+
+      return litigants;
+    } catch (error) {
+      console.error("Error extracting litigants:", error);
+      throw error;
+    }
   }
 
   async collectDocuments() {
     const urls = this.getURLs();
+    console.log(`Starting document download for ${urls.length} documents...`);
     await Promise.all(urls.map((doc) => this.extractDocument(doc)));
-    console.log("Collect full file documents");
+    console.log("All documents downloaded.");
   }
 
   private async extractDocument(doc: Documentation) {
@@ -297,6 +358,11 @@ export class CivilCauseScrap {
     return pdfBuffer || [];
   }
 
+  private parseDate(dateString: string): Date {
+    const [day, month, year] = dateString.split("/").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
   private getURLs(): Documentation[] {
     const documents: Documentation[] = [];
 
@@ -329,10 +395,5 @@ export class CivilCauseScrap {
 
   private get page() {
     return this.scrap.getPage();
-  }
-
-  private ensureDate(dateString: string): Date {
-    const [day, month, year] = dateString.split("/").map(Number);
-    return new Date(year, month - 1, day);
   }
 }

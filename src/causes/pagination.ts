@@ -18,7 +18,7 @@ export class Pagination {
     return pages;
   }
 
-  static run(total: number): number[] {
+  static calculate(total: number): number[] {
     return new Pagination(total).generate();
   }
 }
