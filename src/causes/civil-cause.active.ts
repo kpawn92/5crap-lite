@@ -14,14 +14,19 @@ interface CivilCauseActive {
 
 export class CivilCauseActiveScrape {
   private readonly civils: CivilCauseActive[] = [];
-  private readonly persistentCivil: CivilCauseActive[] = [];
+  private civilMostRecent?: CivilCause;
 
   constructor(private readonly scrap: ScrapService) {}
 
   async init(): Promise<void> {
     try {
-      const civildb = await CivilCauseActive.find();
-      this.persistentCivil.push(...civildb.map(CivilCause.create));
+      const mostRecent = await CivilCauseActive.findOne().sort({
+        admadmissionAt: -1,
+      });
+      this.civilMostRecent = mostRecent
+        ? CivilCause.create(mostRecent)
+        : undefined;
+
       await this.scrap.init();
       console.log("Capture of active civil cases initialized");
     } catch (error) {
@@ -74,6 +79,12 @@ export class CivilCauseActiveScrape {
       for (const page of pagination) {
         const rols = await this.collectRit();
         console.table(rols);
+        const isContinue = this.continueWithScrap(rols);
+        if (!isContinue) {
+          console.log("Scrap closed, list of causes unchanged");
+          break;
+        }
+
         this.civils.push(...rols);
 
         if (page < totalPages) {
@@ -86,6 +97,20 @@ export class CivilCauseActiveScrape {
       console.error("Error collecting causes:", error);
       throw error;
     }
+  }
+
+  private continueWithScrap(rols: CivilCauseActive[]): boolean {
+    if (!this.civilMostRecent) {
+      return true;
+    }
+
+    const mostRecentCauseInput = rols.reduce(
+      (mostRecent, current) =>
+        current.admissionAt > mostRecent.admissionAt ? current : mostRecent,
+      rols[0]
+    );
+
+    return this.civilMostRecent.admissionAt < mostRecentCauseInput.admissionAt;
   }
 
   getCauses() {
