@@ -1,0 +1,182 @@
+[
+  {
+    "rol": "C-2622-2024",
+    "admission": "2024-07-23T04:00:00.000Z",
+    "cover": "/FUENTES",
+    "estAdmin": "Sin archivar",
+    "process": "Liquidación Simplificada",
+    "location": "Digital",
+    "processState": "Tramitación",
+    "stage": "1 Tramitación Liquidación",
+    "court": "1º Juzgado Civil de Talcahuano",
+    "book": "1 - Principal",
+    "movementsHistory": [
+      {
+        "invoice": "10",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuS.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9JdFNOTGFcL0pOeWdnMWpFZmtvam1iVDd4MGhzWUZ2cmtrc3Y1MWNZb3ZYYU41K1BvXC8xdWdLdlZhXC9iNFkwSzhcL1J5MlE4UU1yNEhYUGt5Undiem90XC9ENVR0Y3FBdTU3M0NabzRQczBJdVZRT3l0Yk9wWFNnUUZWTEZ2eVVLU2JWQT09In0.90HnZVr5MbT1JFvWkzkYh68F4mGDcmkl-lNgNWHrtIM"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "Resolución",
+        "descProcedure": "Ofíciese",
+        "dateProcedure": "2024-08-26T04:00:00.000Z",
+        "page": 9
+      },
+      {
+        "invoice": "10",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuS.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9ON1o5V0pENHR1NUdya1o1ZGxsdW0xaW8rTVd4ejR1b3Uyd0QxR21BXC9DaEp1S01ScEZWaG1XaVlIcjVXb3dVMzE3Qjh4SjhDMTNMWnl6V2tqbjdKMW5Xek1HXC9HRTRBUHRaekliMWtQUGNcLyJ9.QFXxKrIiftgahbxUqCFIAiRjDUiwUrd7m-z_oPfMevU"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "Oficio",
+        "descProcedure": "Solicita Informe",
+        "dateProcedure": "2024-08-26T04:00:00.000Z",
+        "page": 9
+      },
+      {
+        "invoice": "10",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuS.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9DUWNjeEExeW4wMzBuUk9CS1ZlYWx6WW94cktKaHpSOHVcL0xiT244dDh0RUxVWXFMNUNxVk8za3cyaDhQeGl1RTFcL3dpWW1zbG56WGQxQzVyV2xHWUFpdVlBd3ZVVVhSTHFZNFdzQTdYUWdyIn0.Ov6HZ77aH8MWOkY0ilFbNMkQ1Uu7peKBmP5W5oFzF5c"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "Oficio",
+        "descProcedure": "Solicita Informe",
+        "dateProcedure": "2024-08-26T04:00:00.000Z",
+        "page": 9
+      },
+      {
+        "invoice": "10",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuS.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9JdFNOTGFcL0pOeWdnMWpFZmtvam1iVDd4MGhzWUZ2cmtrc3Y1MWNZb3ZYYU41K1BvXC8xdWdLdlZhXC9iNFkwSzhcL1J5MlE4UU1yNEhYUGt5Undiem90XC9ENVR0Y3FBdTU3M0NabzRQczBJdVZRT3l0Yk9wWFNnUUZWTEZ2eVVLU2JWQT09In0.90HnZVr5MbT1JFvWkzkYh68F4mGDcmkl-lNgNWHrtIM"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "Resolución",
+        "descProcedure": "Resolución de Liquidación",
+        "dateProcedure": "2024-08-26T04:00:00.000Z",
+        "page": 9
+      },
+      {
+        "invoice": "9",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuS.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9LVVlHMFRRTFhEVjdcL1wvclF4eFpDNFVlYjBickh1TkpUYThNc1NNWmpqZUprVHRyZXBMVytpblQrV3Z6UG1FTlg5QTF2RGV5bkFDemgyQld2NGZuVm9TXC9cL204QjdkNmtZRnpocjhtcVRjNWluQjRFUFJ1bXJEbFNwSlwvRnlkaWpZQT09In0.rETG1NLYpMPBFpqSMl6iCBnhuY2skq4hZuy3E_l8yWM"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "Resolución",
+        "descProcedure": "Autos para resolver",
+        "dateProcedure": "2024-08-23T04:00:00.000Z",
+        "page": 8
+      },
+      {
+        "invoice": "8",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuN.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9MdWdubkJ4N2dGMndvbU1zNUVDdmF5cVRORlJ2ZEFtOGtpNFdvbUxhNzJTWDVIRTF5YWh3N0JjNkFcL054VG1sUVhqMTEyMW9OTnpjOWk4VlwvbDhmSWlRaTlra1p6bGxxbWZ2MmZZYWJob25tIn0.8Z--ou14Hg_PNh7atkX29c_JmXtxeKuTQyMHi1xv5cw",
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docCertificadoEscrito.php?dtaCert=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTUZSZXhEOXd6UjA2cWJPSzlpcWFBV3RxT01WUmdlamdicEVKUXNBZ0J1RT0ifQ.6g4azxqxayttpv10UMD-IzPwMxi1X7zSZjOR_78Wbvc"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "Escrito",
+        "descProcedure": "Certificado Nominación Liquidador",
+        "dateProcedure": "2024-08-20T04:00:00.000Z",
+        "page": 7
+      },
+      {
+        "invoice": "7",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuS.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9FZkpGcldWSkZQSisrNjM2Rit0cGxXbVF1N3ZxSURGOUgzWXFGazJRSGtJc3c3Sm5nTTltRzJlQVhsUThBYUZmZEtOU2FJMWJ2VUo4NVhpMGVNQUhKK2ZwU2lVNDJ1VEpVS2tmMTBXVG9ZMEVSNUhlZHpDckxjTXlybjNtNEx6UWc9PSJ9.i5aXDm5g01erPmLA1J3Kvf2-AOAfDUiDCM6bNtB9jHA"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "Resolución",
+        "descProcedure": "Mero trámite",
+        "dateProcedure": "2024-08-08T04:00:00.000Z",
+        "page": 6
+      },
+      {
+        "invoice": "6",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuN.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9QUXordFwvYm1XQWdMZld5b0RIalhzb0gxcERmbzR1VXY4WTBNTjR0TWJCcWRxR1dFaFVNcU0wazZSWEtsWFB0Z282YXNod1laSTVXMGdxcnVcL3JHbW9sS0ZhWitudDdTbldVY2JXcFladzFXIn0.q7hxioiTn_6yxC54d4wzAq8pnE_bGOHqT7545bJ-aA4",
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docCertificadoEscrito.php?dtaCert=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTUZSZXhEOXd6UjA2cWJPSzlpcWFBYU5jOWJxa1hYV21jTkFGMHRteE5HQT0ifQ.MPtcrP4rm3gqw5xvV8Ee1uYnBA4tMKoAhGOneGUgTts"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "Escrito",
+        "descProcedure": "Cumple lo ordenado",
+        "dateProcedure": "2024-08-07T04:00:00.000Z",
+        "page": 5
+      },
+      {
+        "invoice": "5",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuS.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9MNUVDSXVtakdEbHgzdjRkNWc2dmRnRnkwV2E3WTA4a045ZEkrY0thaDlzbnA5Q3RBRVNKbUQxbVwvRmJNZkpxTnNDVGFZZHArVXVlZEVMOXRDT3VaZk81aFZNRWhDU2R3aFF2endidEtWMVkzQU9NSDJ0S2FneTl5WkVoUXNLSHVBPT0ifQ._EFhM9XwfufZ52tIBy_aLJFm7qr0kn9UMTLaeaWBJVw"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "Resolución",
+        "descProcedure": "Pospone inicio de la tramitación",
+        "dateProcedure": "2024-08-06T04:00:00.000Z",
+        "page": 3
+      },
+      {
+        "invoice": "4",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuN.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9Ba2o0T09HRjY1cGVTdk10Kzg4RDRSUWo4MW9tbVZMSHVyVmNtbER5V2k4aktXTmh0T3BEV0xRTis5MTBqRUxGa1dkNW9jMDBZU2ZzZHI0S040Y3VHMVNnTzFKazVZMGpPZ1owb0J5WVFmYyJ9.4AV9wgeUvFZpEZ3Aw45VlZ2XPGHjt0k2MSPi5LAekII",
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docCertificadoEscrito.php?dtaCert=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTUZSZXhEOXd6UjA2cWJPSzlpcWFBZmlnT2FNcGQ0bmVrZlFGY3NIZlp2MD0ifQ.4NnSGTSFvg32T5ZV605Vljk_cpP7cLo4aSmgs3AUkh4"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "Escrito",
+        "descProcedure": "Cumple lo ordenado",
+        "dateProcedure": "2024-08-01T04:00:00.000Z",
+        "page": 4
+      },
+      {
+        "invoice": "3",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuS.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9Oa0dJaWFnY04wcGpYdUozS29YcXR6dTRJTVZxcWNPQTN3TXpjcUJpekZXR0tjc0xBcW5oSHQ1NXEzOWwyUUVGd0F4b2ZHOVJiNDVtOFlTeDVwXC93NXRGS216U3NnT3k0SHNHQXluMUNRNSsifQ.GdDWYA-F6ABdnNfB-xnD8Xw8Ql0iOpA0A0Bl5_dFI68"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "",
+        "descProcedure": "Acredita Poder",
+        "dateProcedure": "2024-08-01T04:00:00.000Z",
+        "page": 0
+      },
+      {
+        "invoice": "2",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuS.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9MWmM3Szl5Szl3NXltV3V0TFllYmppZ0NpUE5MZklkdzBwaWx2SGVVQ0N0VXBEZHNsSE5jSGR1ZmlUSGdrMjB4RHNVSTAxaDNRXC82OFlLK1hIU3ZBN0gxMm1tYUl5bmVlUFE2eFlrWjJudDVqUzhWTDJWb0x6ZHNwdjNSWW5ZTHRnPT0ifQ.bhn0rDOsBgSyh_b_H9t8ogz8bCpaPTIUWwRtokOUHFk"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "Resolución",
+        "descProcedure": "Pospone inicio de la tramitación",
+        "dateProcedure": "2024-07-30T04:00:00.000Z",
+        "page": 2
+      },
+      {
+        "invoice": "1",
+        "document": [
+          "https://oficinajudicialvirtual.pjud.cl/misCausas/civil/documentos/docuN.php?dtaDoc=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvb2ZpY2luYWp1ZGljaWFsdmlydHVhbC5wanVkLmNsIiwiYXVkIjoiaHR0cHM6XC9cL29maWNpbmFqdWRpY2lhbHZpcnR1YWwucGp1ZC5jbCIsImlhdCI6MTcyNTE1MjYwNiwiZXhwIjoxNzI1MTU2MjA2LCJkYXRhIjoiTVFLS3ViaUU2XC93b3V6TEllOWRGXC9BQ2k5WVwvcFpsaXFiSVlIdTNTVEpGUHVwYmRjbnJpOEpKdWxiVmVcL3lWa2pVekdSTm94RzJ6b1wvQ3luTWhqNDFmd29QaW1GeitBSEtWVUI2QmpDWEFadUZOOWtqbnptWTVqalE4NWd0SGtjWSJ9.dFeKs9LvqOOyrF1AA_p7PRL6GhAnFtwct9L87jFzuEs"
+        ],
+        "stage": "Inicio tramitación",
+        "procedure": "Escrito",
+        "descProcedure": "Ingreso demanda",
+        "dateProcedure": "2024-07-23T04:00:00.000Z",
+        "page": 1
+      }
+    ],
+    "litigants": [
+      {
+        "participant": "LIQUID",
+        "rut": "9128164-3",
+        "person": "NATURAL",
+        "name": "JAIME PEDRO GONZÁLEZ TOBAR"
+      },
+      {
+        "participant": "DDOR.",
+        "rut": "17845954-6",
+        "person": "NATURAL",
+        "name": "ROMINA ANDREA FUENTES ARÉVALO"
+      },
+      {
+        "participant": "AB.DDO",
+        "rut": "17560110-4",
+        "person": "NATURAL",
+        "name": "ROBERTO IVÁN MUÑOZ CASTRO (Poder Amplio)"
+      }
+    ]
+  }
+]

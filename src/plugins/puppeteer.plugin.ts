@@ -1,29 +1,26 @@
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer-extra";
+import { envs } from "./env.plugin";
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
-
-export const RUT = process.env.RUT || "";
-const PASS = process.env.PASS || "";
 
 export class ScrapService {
   private browser: Browser | null = null;
   private page: Page | null = null;
 
-  async init() {
+  async init(url = "https://oficinajudicialvirtual.pjud.cl/home/index.php") {
     this.browser = await puppeteer.launch({
       headless: false,
       defaultViewport: null,
       slowMo: 400,
     });
     this.page = await this.browser.newPage();
-    await this.page.goto(
-      "https://oficinajudicialvirtual.pjud.cl/home/index.php",
-      {
-        waitUntil: "domcontentloaded",
-        timeout: 0,
-      }
-    );
+    await this.page.goto(url, {
+      waitUntil: "domcontentloaded",
+      timeout: 0,
+    });
+
+    console.log(`Init scrap to: <${url}>`);
 
     await this.login();
   }
@@ -48,13 +45,15 @@ export class ScrapService {
     await this.page?.waitForSelector("input#uname", { timeout: 0 });
     await this.page?.waitForSelector('input[type="password"]', { timeout: 0 });
 
-    await this.page?.type("input#uname", RUT);
-    await this.page?.type('input[type="password"]', PASS);
+    await this.page?.type("input#uname", envs.RUT);
+    await this.page?.type('input[type="password"]', envs.PASS);
     await this.page?.click("button#login-submit");
     await this.page?.waitForNavigation({
       waitUntil: "domcontentloaded",
       timeout: 0,
     });
+
+    console.log("Authenticated");
     await this.timeout(2000);
   }
 
@@ -69,22 +68,6 @@ export class ScrapService {
     await this.timeout(delay);
   }
 
-  async extractPDF(pdfUrl: string) {
-    return await this.page?.evaluate(async (pdfUrl) => {
-      const res = await fetch(pdfUrl, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch PDF");
-      }
-
-      const buffer = await res.arrayBuffer();
-      return Array.from(new Uint8Array(buffer));
-    }, pdfUrl);
-  }
-
   async execute(script: string, delay = 4000): Promise<void> {
     await this.page?.evaluate((script) => eval(script), script);
     await this.timeout(delay);
@@ -96,6 +79,7 @@ export class ScrapService {
 
   async close(): Promise<void> {
     await this.browser?.close();
+    console.log("Scrap finish");
   }
 }
 
