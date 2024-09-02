@@ -21,14 +21,14 @@ export class CivilCauseActiveScrape {
   async init(): Promise<void> {
     try {
       const mostRecent = await CivilCauseActive.findOne().sort({
-        admadmissionAt: -1,
+        admissionAt: -1,
       });
       this.civilMostRecent = mostRecent
         ? CivilCause.create(mostRecent)
         : undefined;
 
       if (this.civilMostRecent) {
-        console.log("Civil most recent: ");
+        console.log("Civil most");
         console.table(this.civilMostRecent);
       }
 
@@ -84,8 +84,8 @@ export class CivilCauseActiveScrape {
       for (const page of pagination) {
         const rols = await this.collectRit();
         console.table(rols);
-        const isContinue = this.continueWithScrap(rols);
-        if (!isContinue) {
+        const thisContinue = this.continueWithScrap(rols);
+        if (!thisContinue) {
           console.log("Scrap closed, list of causes unchanged");
           break;
         }
