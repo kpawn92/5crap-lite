@@ -1,5 +1,4 @@
-import { ScrapService } from "../plugins";
-import { FileSystemService } from "../plugins/file.plugin";
+import { FileSystemService, ScrapService } from "../plugins";
 import {
   Anchor,
   CauseCivilPrimitives,
@@ -7,15 +6,14 @@ import {
   Litigant,
   Movement,
 } from "./civil-cause.types";
-import { Pagination } from "./pagination";
 
-export class CivilCauseScrap {
+export class CivilCauseRolCollectScrape {
   private readonly anchors: Array<Anchor> = [];
   private readonly causes: Array<CauseCivilPrimitives> = [];
 
   constructor(
     private readonly scrap: ScrapService,
-    private readonly fileService: FileSystemService
+    private readonly file: FileSystemService
   ) {}
 
   async init(): Promise<void> {
@@ -25,19 +23,6 @@ export class CivilCauseScrap {
     } catch (error) {
       console.error("Error initializing scrap service:", error);
       throw error;
-    }
-  }
-
-  async finish(): Promise<void> {
-    try {
-      // this.fileService.write(this.causes, new Date().toISOString());
-      // console.log("Causes data saved to JSON file.");
-    } catch (error) {
-      console.error("Error saving causes data:", error);
-      throw error;
-    } finally {
-      await this.scrap.close();
-      console.log("Scrap service closed.");
     }
   }
 
@@ -53,31 +38,32 @@ export class CivilCauseScrap {
     }
   }
 
-  async applyActiveFilter() {
-    await this.page.evaluate(() => {
-      const statusSelect = document.querySelector<HTMLSelectElement>(
-        "#estadoCausaMisCauCiv"
+  async applyRolFilter(cause: string): Promise<void> {
+    const params = cause.split("-");
+    await this.page.evaluate(([rit, rol, year]) => {
+      const ritElement = document.querySelector<HTMLSelectElement>(
+        "select#tipoMisCauCiv"
       );
-      statusSelect && (statusSelect.value = "1");
 
-      // const inputYear = document.querySelector(
-      //   "input#anhoMisCauCiv"
-      // ) as HTMLInputElement;
+      const rolElement =
+        document.querySelector<HTMLInputElement>("input#rolMisCauCiv");
 
-      // const inputRol = document.querySelector(
-      //   "input#rolMisCauCiv"
-      // ) as HTMLInputElement;
-      // if (inputYear && inputRol) {
-      //   inputYear.value = new Date().getFullYear().toString();
-      //   inputRol.value = "2622";
-      // }
+      const yearElement = document.querySelector<HTMLInputElement>(
+        "input#anhoMisCauCiv"
+      );
 
-      const search = document.querySelector(
+      if (ritElement && rolElement && yearElement) {
+        ritElement.value = rit;
+        rolElement.value = rol;
+        yearElement.value = year;
+      }
+
+      const search = document.querySelector<HTMLButtonElement>(
         "#btnConsultaMisCauCiv"
-      ) as HTMLButtonElement;
+      );
       search?.click();
-    });
-    console.log("Filters cuases active applied");
+    }, params);
+    console.log("Filters applied");
     return this.scrap.timeout(1500);
   }
 
@@ -87,18 +73,7 @@ export class CivilCauseScrap {
       await this.scrap.waitForSelector("div.loadTotalCiv");
       await this.scrap.simuleBodyAction();
 
-      const totalItems = await this.getTotalItems();
-      const pagination = Pagination.calculate(totalItems);
-      const totalPages = pagination.length;
-      console.log(`Total items: ${totalItems}, Total pages: ${totalPages}`);
-
-      for (const page of pagination) {
-        await this.collectAnchors();
-        if (page < totalPages) {
-          await this.goToNextPage();
-          console.log(`Go to next page: ${page}`);
-        }
-      }
+      await this.collectAnchors();
       console.log(`Total anchors collected: ${this.anchors.length}`);
     } catch (error) {
       console.error("Error collecting causes:", error);
@@ -106,29 +81,61 @@ export class CivilCauseScrap {
     }
   }
 
-  private async goToNextPage(): Promise<void> {
+  async collectDetails(): Promise<void> {
     try {
-      await this.page.evaluate(() => {
-        const nextButton = document.querySelector<HTMLAnchorElement>("a#sigId");
-        nextButton?.click();
-      });
-      await this.scrap.timeout(3000);
-      await this.scrap.waitForSelector("tbody#verDetalleMisCauCiv", 5000);
-      console.log("Navigated to next page.");
+      for (const [index, anchor] of this.anchors.entries()) {
+        console.log(`Processing cause ${index + 1}/${this.anchors.length}...`);
+        await this.scrap.execute(anchor.script);
+        await this.scrap.timeout(1500);
+
+        const causeDetails = await this.extractCauseDetails();
+        const movementsHistory = await this.extractMovementsHistory();
+        await this.scrap.timeout(1000);
+        const litigants = await this.extractLitigants();
+        console.table(causeDetails);
+        console.log(movementsHistory.length);
+        console.table(litigants);
+
+        this.causes.push({
+          ...causeDetails,
+          movementsHistory,
+          litigants,
+        });
+
+        await this.closeModal();
+        await this.scrap.timeout(2000);
+      }
+      console.log(`Total causes collected: ${this.causes.length}`);
     } catch (error) {
-      console.error("Error navigating to next page:", error);
+      console.error("Error collecting details:", error);
       throw error;
     }
   }
 
-  private async getTotalItems(): Promise<number> {
-    const totalItemsText = await this.page.evaluate(() => {
-      return document.querySelector("div.loadTotalCiv>b")?.textContent || "0";
-    });
-    const totalItems = parseInt(totalItemsText, 10);
-    return isNaN(totalItems) ? 0 : totalItems;
+  async collectDocuments() {
+    const urls = this.getURLs();
+    return this.downloadPDF(urls);
   }
 
+  public getCauses(): CauseCivilPrimitives[] {
+    return this.causes.map((cause) => {
+      return {
+        ...cause,
+        movementsHistory: cause.movementsHistory.map((history) => ({
+          ...history,
+          document: history.document.map((doc) => {
+            return `${doc.split("?").at(1)?.split(".").at(2)}.pdf`;
+          }),
+        })),
+      };
+    });
+  }
+
+  private async downloadPDF(urls: Documentation[]) {
+    console.log(`Starting document download for ${urls.length} documents...`);
+    await Promise.all(urls.map((doc) => this.extractDocument(doc)));
+    console.log("All documents downloaded.");
+  }
   private async collectAnchors(): Promise<void> {
     try {
       const anchorsOnPage = await this.page.evaluate(() => {
@@ -152,38 +159,6 @@ export class CivilCauseScrap {
       );
     } catch (error) {
       console.error("Error collecting anchors:", error);
-      throw error;
-    }
-  }
-
-  async collectDetails(): Promise<void> {
-    try {
-      for (const [index, anchor] of this.anchors.entries()) {
-        console.log(`Processing cause ${index + 1}/${this.anchors.length}...`);
-        await this.scrap.execute(anchor.script);
-        await this.scrap.timeout(1500);
-
-        const causeDetails = await this.extractCauseDetails();
-        const movementsHistory = await this.extractMovementsHistory();
-        this.collectDocumentByMovements(movementsHistory);
-        await this.scrap.timeout(1000);
-        const litigants = await this.extractLitigants();
-        console.table(causeDetails);
-        console.log(movementsHistory.length);
-        console.table(litigants);
-
-        this.causes.push({
-          ...causeDetails,
-          movementsHistory,
-          litigants,
-        });
-
-        await this.closeModal();
-        await this.scrap.timeout(2000);
-      }
-      console.log(`Total causes collected: ${this.causes.length}`);
-    } catch (error) {
-      console.error("Error collecting details:", error);
       throw error;
     }
   }
@@ -294,7 +269,7 @@ export class CivilCauseScrap {
       throw error;
     }
   }
-  
+
   private async extractLitigants(): Promise<Litigant[]> {
     try {
       await this.page.click('a[href="#litigantesCiv"]');
@@ -323,27 +298,20 @@ export class CivilCauseScrap {
     }
   }
 
-  async collectDocuments() {
-    const urls = this.getURLs();
-    return this.downloadPDF(urls);
-  }
+  private getURLs(): Documentation[] {
+    const documents: Documentation[] = [];
 
-  private async collectDocumentByMovements(movements: Movement[]) {
-    const URLs: Documentation[] = [];
-    movements.forEach((movement) => {
-      movement.document.forEach((url) => {
-        URLs.push({
-          url,
+    this.causes.forEach((civil) => {
+      civil.movementsHistory.forEach((movement) => {
+        movement.document.forEach((url) => {
+          documents.push({
+            url,
+          });
         });
       });
     });
-    return this.downloadPDF(URLs);
-  }
 
-  private async downloadPDF(urls: Documentation[]) {
-    console.log(`Starting document download for ${urls.length} documents...`);
-    await Promise.all(urls.map((doc) => this.extractDocument(doc)));
-    console.log("All documents downloaded.");
+    return documents;
   }
 
   private async extractDocument(doc: Documentation) {
@@ -352,10 +320,10 @@ export class CivilCauseScrap {
     console.log(`Init extract document: ${filename}`);
     const pdfArray = await this.extractPDF(url);
     console.log("Document collect: ", filename);
-    return this.fileService.save(pdfArray, filename);
+    return this.file.save(pdfArray, filename);
   }
 
-  async extractPDF(pdfUrl: string) {
+  private async extractPDF(pdfUrl: string) {
     const pdfBuffer = await this.page.evaluate(async (url) => {
       try {
         const response = await fetch(url, {
@@ -390,34 +358,17 @@ export class CivilCauseScrap {
     return new Date(year, month - 1, day);
   }
 
-  private getURLs(): Documentation[] {
-    const documents: Documentation[] = [];
-
-    this.causes.forEach((civil) => {
-      civil.movementsHistory.forEach((movement) => {
-        movement.document.forEach((url) => {
-          documents.push({
-            url,
-          });
-        });
-      });
-    });
-
-    return documents;
-  }
-
-  public getCauses(): CauseCivilPrimitives[] {
-    return this.causes.map((cause) => {
-      return {
-        ...cause,
-        movementsHistory: cause.movementsHistory.map((history) => ({
-          ...history,
-          document: history.document.map((doc) => {
-            return `${doc.split("?").at(1)?.split(".").at(2)}.pdf`;
-          }),
-        })),
-      };
-    });
+  async finish(): Promise<void> {
+    try {
+      //   this.file.write(this.causes, `${Date.now()}}`);
+      // console.log("Causes data saved to JSON file.");
+    } catch (error) {
+      console.error("Error saving causes data:", error);
+      throw error;
+    } finally {
+      await this.scrap.close();
+      console.log("Scrap service closed.");
+    }
   }
 
   private get page() {

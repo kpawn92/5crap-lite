@@ -17,7 +17,7 @@ export class FileSystemService {
     const filePath = `${this.documentPath}/${filename}.pdf`;
     const buffer = Buffer.from(pdfArray);
     fs.writeFileSync(filePath, buffer);
-    console.log(`Document <${filename}> writed`);
+    // console.log(`Document <${filename}> writed`);
   }
 
   write(data: Array<any>, document = "civil") {

@@ -27,6 +27,11 @@ export class CivilCauseActiveScrape {
         ? CivilCause.create(mostRecent)
         : undefined;
 
+      if (this.civilMostRecent) {
+        console.log("Civil most recent: ");
+        console.table(this.civilMostRecent);
+      }
+
       await this.scrap.init();
       console.log("Capture of active civil cases initialized");
     } catch (error) {
