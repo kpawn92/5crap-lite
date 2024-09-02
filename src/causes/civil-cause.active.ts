@@ -81,11 +81,14 @@ export class CivilCauseActiveScrape {
       const totalPages = pagination.length;
       console.log(`Total items: ${totalItems}, Total pages: ${totalPages}`);
 
+      let flag = false;
       for (const page of pagination) {
         const rols = await this.collectRit();
         console.table(rols);
         const thisContinue = this.continueWithScrap(rols);
+
         if (!thisContinue) {
+          flag = true;
           console.log("Scrap closed, list of causes unchanged");
           break;
         }
@@ -96,6 +99,11 @@ export class CivilCauseActiveScrape {
           await this.goToNextPage();
           console.log(`Go to next page: ${page}`);
         }
+      }
+
+      if (flag) {
+        await this.finish();
+        process.exit(0);
       }
       console.log(`Total rol collected: ${this.civils.length}`);
     } catch (error) {

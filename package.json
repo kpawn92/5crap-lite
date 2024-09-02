@@ -4,7 +4,11 @@
   "description": "Scraping causes",
   "main": "main.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only --env-file=.env src/main.ts"
+    "dev:one": "ts-node-dev --respawn --transpile-only --env-file=.env src/scrap-civil-one.ts",
+    "dev:all": "ts-node-dev --respawn --transpile-only --env-file=.env src/scrap-civil-all.ts",
+    "start:one": "node --env-file=.env dist/scrap-civil-one.js",
+    "start:all": "node --env-file=.env dist/scrap-civil-all.js",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",

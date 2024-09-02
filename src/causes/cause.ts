@@ -2,21 +2,24 @@ import { CivilCauseRolCollectScrape } from "./civil-cause-rol.collect";
 import { CivilCauseActiveScrape } from "./civil-cause.active";
 
 export class Cause {
+  private rol: string = "";
+
   constructor(
-    private readonly civilScrap: CivilCauseActiveScrape,
+    private readonly civilActiveScrap: CivilCauseActiveScrape,
     private readonly civilDetailScrap: CivilCauseRolCollectScrape
   ) {}
 
   async getCivilCauses() {
-    await this.civilScrap.init();
-    await this.civilScrap.navigateToCivilCausesTab();
-    await this.civilScrap.applyActiveFilter();
-    await this.civilScrap.collectCauses();
-    await this.civilScrap.finish();
-    return this.civilScrap.getCauses();
+    await this.civilActiveScrap.init();
+    await this.civilActiveScrap.navigateToCivilCausesTab();
+    await this.civilActiveScrap.applyActiveFilter();
+    await this.civilActiveScrap.collectCauses();
+    await this.civilActiveScrap.finish();
+    return this.civilActiveScrap.getCauses();
   }
 
   async getCivilCauseDetail(rol: string) {
+    this.rol = rol;
     await this.civilDetailScrap.init();
     await this.civilDetailScrap.navigateToCivilCausesTab();
     await this.civilDetailScrap.applyRolFilter(rol);
@@ -28,13 +31,15 @@ export class Cause {
     return this.civilDetailScrap.getCauses();
   }
 
-  // async getAllCivils() {
-  //   await this.civil.init();
-  //   await this.civil.navigateToCivilCausesTab();
-  //   await this.civil.applyActiveFilter();
-  //   await this.civil.collectCauses();
-  //   await this.civil.collectDetails();
+  public get hasReplaceCivilDetail(): boolean {
+    return this.civilDetailScrap.hasUpdate;
+  }
 
-  //   return this.civil.getCauses();
-  // }
+  public getCivilDetailReplacement() {
+    return this.civilDetailScrap.getCauses().at(0);
+  }
+
+  public get rolConsulted(): string {
+    return this.rol;
+  }
 }

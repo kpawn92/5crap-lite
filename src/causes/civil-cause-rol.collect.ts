@@ -1,4 +1,6 @@
+import { CauseCivil } from "../db";
 import { FileSystemService, ScrapService } from "../plugins";
+import { CivilCauseDetail } from "./civil-cause.detail";
 import {
   Anchor,
   CauseCivilPrimitives,
@@ -10,6 +12,8 @@ import {
 export class CivilCauseRolCollectScrape {
   private readonly anchors: Array<Anchor> = [];
   private readonly causes: Array<CauseCivilPrimitives> = [];
+  private causePersist: CauseCivilPrimitives | null = null;
+  public hasUpdate: boolean = false;
 
   constructor(
     private readonly scrap: ScrapService,
@@ -39,8 +43,23 @@ export class CivilCauseRolCollectScrape {
   }
 
   async applyRolFilter(cause: string): Promise<void> {
+    const query = await CauseCivil.findOne({ rol: cause });
+
+    if (query) {
+      this.causePersist = CivilCauseDetail.create(query);
+      console.log(`Cause civil by rol: ${cause}`);
+      console.log(this.causePersist);
+    }
+
     const params = cause.split("-");
     await this.page.evaluate(([rit, rol, year]) => {
+      const statusSelect = document.querySelector<HTMLSelectElement>(
+        "#estadoCausaMisCauCiv"
+      );
+      if (statusSelect) {
+        statusSelect.value = "1";
+      }
+
       const ritElement = document.querySelector<HTMLSelectElement>(
         "select#tipoMisCauCiv"
       );
@@ -83,15 +102,29 @@ export class CivilCauseRolCollectScrape {
 
   async collectDetails(): Promise<void> {
     try {
+      let flag = false;
       for (const [index, anchor] of this.anchors.entries()) {
         console.log(`Processing cause ${index + 1}/${this.anchors.length}...`);
         await this.scrap.execute(anchor.script);
         await this.scrap.timeout(1500);
 
         const causeDetails = await this.extractCauseDetails();
+
         const movementsHistory = await this.extractMovementsHistory();
         await this.scrap.timeout(1000);
+
         const litigants = await this.extractLitigants();
+        if (
+          !this.hasChangesMovements(movementsHistory) &&
+          !this.hasChangesLitigants(litigants)
+        ) {
+          flag = true;
+          console.log("There are no changes in the rol cause");
+          break;
+        } else if (this.causePersist) {
+          this.hasUpdate = true;
+        }
+
         console.table(causeDetails);
         console.log(movementsHistory.length);
         console.table(litigants);
@@ -105,11 +138,70 @@ export class CivilCauseRolCollectScrape {
         await this.closeModal();
         await this.scrap.timeout(2000);
       }
+
+      if (flag) {
+        await this.finish();
+        process.exit(0);
+      }
       console.log(`Total causes collected: ${this.causes.length}`);
     } catch (error) {
       console.error("Error collecting details:", error);
       throw error;
     }
+  }
+
+  private hasChangesMovements(movements: Movement[]): boolean {
+    if (!this.causePersist) {
+      return true;
+    }
+
+    return this.compareMovements(this.causePersist.movementsHistory, movements);
+  }
+  private hasChangesLitigants(litigants: Litigant[]): boolean {
+    if (!this.causePersist) {
+      return true;
+    }
+
+    return this.compareLitigants(this.causePersist.litigants, litigants);
+  }
+
+  private compareLitigants(arr1: Litigant[], arr2: Litigant[]): boolean {
+    if (arr1.length !== arr2.length) return true;
+
+    // Ordenar los arreglos por un campo único para asegurar la comparación ordenada
+    const sortByRut = (arr: Litigant[]) =>
+      arr.slice().sort((a, b) => a.rut.localeCompare(b.rut));
+
+    const sortedArr1 = sortByRut(arr1);
+    const sortedArr2 = sortByRut(arr2);
+
+    return sortedArr1.some((litigant1, index) => {
+      const litigant2 = sortedArr2[index];
+
+      return (
+        litigant1.rut !== litigant2.rut ||
+        litigant1.person !== litigant2.person ||
+        litigant1.name !== litigant2.name
+      );
+    });
+  }
+
+  private compareMovements(arr1: Movement[], arr2: Movement[]): boolean {
+    if (arr1.length !== arr2.length) return true;
+
+    return arr1.some((movement1, index) => {
+      const movement2 = arr2[index];
+
+      return (
+        movement1.invoice !== movement2.invoice ||
+        movement1.stage !== movement2.stage ||
+        movement1.procedure !== movement2.procedure ||
+        movement1.descProcedure !== movement2.descProcedure ||
+        movement1.dateProcedure.getTime() !==
+          movement2.dateProcedure.getTime() ||
+        movement1.page !== movement2.page
+      );
+    });
   }
 
   async collectDocuments() {
