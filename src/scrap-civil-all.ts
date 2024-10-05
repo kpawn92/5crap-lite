@@ -15,6 +15,7 @@ import { envs } from "./plugins";
     await CivilCauseActive.insertMany(collect);
 
     console.log("Process finish");
+    process.exit(0);
   } catch (error) {
     console.error(error);
     process.exit();

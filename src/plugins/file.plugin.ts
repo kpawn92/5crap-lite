@@ -1,23 +1,35 @@
 import * as fs from "node:fs";
+import path from "node:path";
 
 export class FileSystemService {
-  private readonly documentPath = "documents/";
+  private readonly documentPath = path.join(__dirname, "/../../documents");
 
   constructor() {
     this.createPath();
   }
 
   private createPath() {
-    if (!fs.existsSync(this.documentPath)) {
-      fs.mkdirSync(this.documentPath);
+    this.checkPath(this.documentPath);
+  }
+
+  private checkPath(pathName: string) {
+    if (!fs.existsSync(pathName)) {
+      fs.mkdirSync(pathName, { recursive: true });
     }
+  }
+
+  writeDocumentByCause(pdfArray: number[], subPath: string, filename: string) {
+    const destination = path.join(this.documentPath, subPath);
+    this.checkPath(destination);
+    const buff = Buffer.from(pdfArray);
+    const filePath = path.join(destination, `${filename}.pdf`);
+    fs.writeFileSync(filePath, buff);
   }
 
   save(pdfArray: number[], filename: string) {
     const filePath = `${this.documentPath}/${filename}.pdf`;
     const buffer = Buffer.from(pdfArray);
     fs.writeFileSync(filePath, buffer);
-    // console.log(`Document <${filename}> writed`);
   }
 
   write(data: Array<any>, document = "civil") {

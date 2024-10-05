@@ -34,6 +34,10 @@ export interface Litigant {
   name: string;
 }
 
-export interface Documentation {
+export type Documentation = Pick<
+  Movement,
+  "procedure" | "descProcedure" | "dateProcedure"
+> & {
+  index: number;
   url: string;
-}
+};

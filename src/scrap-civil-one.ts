@@ -20,9 +20,11 @@ import { envs } from "./plugins";
       );
     } else {
       await CauseCivil.insertMany(collect);
+      console.log("Collect saved");
     }
 
     console.log("Process finish");
+    process.exit(0);
   } catch (error) {
     console.error(error);
     process.exit();

@@ -8,12 +8,15 @@ import {
   Litigant,
   Movement,
 } from "./civil-cause.types";
+import { CivilCauseExtractFailed } from "./civil-extract-doc.failed";
 
 export class CivilCauseRolCollectScrape {
-  private readonly anchors: Array<Anchor> = [];
+  private anchors: Array<Anchor> = [];
   private readonly causes: Array<CauseCivilPrimitives> = [];
   private causePersist: CauseCivilPrimitives | null = null;
   public hasUpdate: boolean = false;
+  private causeTemp: string = "";
+  private failedDocs: Documentation[] = [];
 
   constructor(
     private readonly scrap: ScrapService,
@@ -43,6 +46,7 @@ export class CivilCauseRolCollectScrape {
   }
 
   async applyRolFilter(cause: string): Promise<void> {
+    this.causeTemp = cause;
     const query = await CauseCivil.findOne({ rol: cause });
 
     if (query) {
@@ -204,8 +208,8 @@ export class CivilCauseRolCollectScrape {
     });
   }
 
-  async collectDocuments() {
-    const urls = this.getURLs();
+  async collectDocuments(tempURLs?: Documentation[]) {
+    const urls = tempURLs || this.getURLs();
     return this.downloadPDF(urls);
   }
 
@@ -215,8 +219,12 @@ export class CivilCauseRolCollectScrape {
         ...cause,
         movementsHistory: cause.movementsHistory.map((history) => ({
           ...history,
-          document: history.document.map((doc) => {
-            return `${doc.split("?").at(1)?.split(".").at(2)}.pdf`;
+          document: history.document.map((doc, index) => {
+            return `${this.parseStringToCode(
+              history.procedure
+            )}_${this.parseStringToCode(
+              history.descProcedure
+            )}_${this.codeUnique(history.dateProcedure)}_[${index}].pdf`;
           }),
         })),
       };
@@ -225,9 +233,10 @@ export class CivilCauseRolCollectScrape {
 
   private async downloadPDF(urls: Documentation[]) {
     console.log(`Starting document download for ${urls.length} documents...`);
-    await Promise.all(urls.map((doc) => this.extractDocument(doc)));
+    await Promise.allSettled(urls.map((doc) => this.extractDocument(doc)));
     console.log("All documents downloaded.");
   }
+
   private async collectAnchors(): Promise<void> {
     try {
       const anchorsOnPage = await this.page.evaluate(() => {
@@ -395,9 +404,13 @@ export class CivilCauseRolCollectScrape {
 
     this.causes.forEach((civil) => {
       civil.movementsHistory.forEach((movement) => {
-        movement.document.forEach((url) => {
+        movement.document.forEach((url, index) => {
           documents.push({
+            index,
             url,
+            dateProcedure: movement.dateProcedure,
+            descProcedure: movement.descProcedure,
+            procedure: movement.procedure,
           });
         });
       });
@@ -407,12 +420,24 @@ export class CivilCauseRolCollectScrape {
   }
 
   private async extractDocument(doc: Documentation) {
-    const { url } = doc;
-    const filename = url.split("?").at(1)?.split(".").at(2) || "";
-    console.log(`Init extract document: ${filename}`);
+    const { url, dateProcedure, descProcedure, index, procedure } = doc;
+    // const filename = url.split("?").at(1)?.split(".").at(2) || "";
+    const filename = `${this.parseStringToCode(
+      procedure
+    )}_${this.parseStringToCode(descProcedure)}_${this.codeUnique(
+      dateProcedure
+    )}_[${index}]`;
+
+    console.log(`Init extract document: ${filename}.pdf`);
     const pdfArray = await this.extractPDF(url);
+
+    if (!pdfArray) {
+      this.failedDocs.push(doc);
+      return;
+    }
+
+    this.file.writeDocumentByCause(pdfArray, this.causeTemp, filename);
     console.log("Document collect: ", filename);
-    return this.file.save(pdfArray, filename);
   }
 
   private async extractPDF(pdfUrl: string) {
@@ -436,13 +461,12 @@ export class CivilCauseRolCollectScrape {
       }
     }, pdfUrl);
 
-    console.log(pdfBuffer?.length || "No PDF buffer received");
-
+    // console.log(pdfBuffer?.length || "");
     if (!pdfBuffer) {
-      console.log("Pdf not extracted");
+      console.log("No PDF buffer received");
     }
 
-    return pdfBuffer || [];
+    return pdfBuffer;
   }
 
   private parseDate(dateString: string): Date {
@@ -452,8 +476,17 @@ export class CivilCauseRolCollectScrape {
 
   async finish(): Promise<void> {
     try {
-      //   this.file.write(this.causes, `${Date.now()}}`);
-      // console.log("Causes data saved to JSON file.");
+      this.anchors = [];
+      if (this.failedDocs.length > 0) {
+        await this.collectAnchors();
+        const extractDocFailed = new CivilCauseExtractFailed(
+          this.failedDocs,
+          this.anchors,
+          this.scrap
+        );
+        const docs = await extractDocFailed.getNewsURLs();
+        await this.collectDocuments(docs);
+      }
     } catch (error) {
       console.error("Error saving causes data:", error);
       throw error;
@@ -461,6 +494,26 @@ export class CivilCauseRolCollectScrape {
       await this.scrap.close();
       console.log("Scrap service closed.");
     }
+  }
+
+  private codeUnique(date: Date): string {
+    // Obtener la fecha actual
+    const year = date.getFullYear().toString().slice(-2); // Últimos dos dígitos del año
+    const month = (date.getMonth() + 1).toString().padStart(2, "0"); // Mes con dos dígitos
+    const day = date.getDate().toString().padStart(2, "0"); // Día con dos dígitos
+
+    // Generar un número aleatorio de 4 dígitos
+    const randomPart = Math.floor(1000 + Math.random() * 9000).toString();
+
+    // Combinar el prefijo, la fecha y el número aleatorio para formar el código
+    const code = `${year}${month}${day}_${randomPart}`;
+
+    return code;
+  }
+
+  private parseStringToCode(value: string): string {
+    const arrValues = value.split(" ");
+    return arrValues.map((item) => item.toLowerCase()).join("_");
   }
 
   private get page() {
