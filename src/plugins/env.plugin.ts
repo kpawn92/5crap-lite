@@ -1,5 +1,5 @@
 import * as env from "env-var";
-import { resolve } from "path";
+import { resolve } from "node:path";
 import * as dotenv from "dotenv";
 
 if (process.env.NODE_ENV !== "production") {
