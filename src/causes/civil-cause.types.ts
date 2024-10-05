@@ -12,7 +12,6 @@ export interface CauseCivilPrimitives {
   stage: string;
   processState: string;
   court: string;
-  book: string;
   movementsHistory: Movement[];
   litigants: Litigant[];
 }
@@ -21,6 +20,7 @@ export interface Movement {
   invoice: string;
   document: string[];
   stage: string;
+  book: string;
   procedure: string;
   descProcedure: string;
   dateProcedure: Date;

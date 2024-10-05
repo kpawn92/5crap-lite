@@ -106,20 +106,28 @@ export class CivilCauseRolCollectScrape {
 
   async collectDetails(): Promise<void> {
     try {
+      if (this.anchors.length === 0) {
+        console.log("Process finish: There are no civil cases to download");
+        return process.exit();
+      }
       let flag = false;
       for (const [index, anchor] of this.anchors.entries()) {
         console.log(`Processing cause ${index + 1}/${this.anchors.length}...`);
         await this.scrap.execute(anchor.script);
         await this.scrap.timeout(1500);
 
-        const causeDetails = await this.extractCauseDetails();
+        const { book, ...causeDetails } = await this.extractCauseDetails();
 
         const movementsHistory = await this.extractMovementsHistory();
         await this.scrap.timeout(1000);
+        const movements = movementsHistory.map((item) => ({
+          ...item,
+          book,
+        }));
 
         const litigants = await this.extractLitigants();
         if (
-          !this.hasChangesMovements(movementsHistory) &&
+          !this.hasChangesMovements(movements) &&
           !this.hasChangesLitigants(litigants)
         ) {
           flag = true;
@@ -135,7 +143,7 @@ export class CivilCauseRolCollectScrape {
 
         this.causes.push({
           ...causeDetails,
-          movementsHistory,
+          movementsHistory: movements,
           litigants,
         });
 
@@ -145,7 +153,7 @@ export class CivilCauseRolCollectScrape {
 
       if (flag) {
         await this.finish();
-        process.exit(0);
+        return process.exit();
       }
       console.log(`Total causes collected: ${this.causes.length}`);
     } catch (error) {
@@ -240,9 +248,10 @@ export class CivilCauseRolCollectScrape {
   private async collectAnchors(): Promise<void> {
     try {
       const anchorsOnPage = await this.page.evaluate(() => {
-        const rows = Array.from(
-          document.querySelectorAll("tbody#verDetalleMisCauCiv>tr")
-        );
+        const rows =
+          Array.from(
+            document.querySelectorAll("tbody#verDetalleMisCauCiv>tr")
+          ) || [];
         return rows
           .map(
             (row) =>
@@ -272,7 +281,9 @@ export class CivilCauseRolCollectScrape {
   }
 
   private async extractCauseDetails(): Promise<
-    Omit<CauseCivilPrimitives, "movementsHistory" | "litigants">
+    Omit<CauseCivilPrimitives, "movementsHistory" | "litigants"> & {
+      book: string;
+    }
   > {
     try {
       await this.scrap.waitForSelector(
@@ -314,7 +325,7 @@ export class CivilCauseRolCollectScrape {
     }
   }
 
-  private async extractMovementsHistory(): Promise<Movement[]> {
+  private async extractMovementsHistory(): Promise<Omit<Movement, "book">[]> {
     try {
       await this.scrap.waitForSelector("div#loadHistCuadernoCiv", 5000);
 

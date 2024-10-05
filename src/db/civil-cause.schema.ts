@@ -10,7 +10,6 @@ interface CauseCivilPrimitives extends Document {
   stage: string;
   processState: string;
   court: string;
-  book: string;
   status?: string;
   visibility?: boolean;
   movementsHistory: Movement[];
@@ -22,6 +21,7 @@ export interface Movement {
   document: string[];
   stage: string;
   procedure: string;
+  book: string;
   descProcedure: string;
   dateProcedure: Date;
   page: number;
@@ -39,6 +39,7 @@ const MovementSchema = new Schema<Movement>({
   document: { type: [String] },
   stage: { type: String },
   procedure: { type: String },
+  book: { type: String },
   descProcedure: { type: String },
   dateProcedure: { type: Date },
   page: { type: Number },
@@ -62,7 +63,6 @@ const CauseCivilSchema = new Schema<CauseCivilPrimitives>(
     stage: { type: String },
     processState: { type: String },
     court: { type: String },
-    book: { type: String },
     status: { type: String, default: "ACTIVE" },
     visibility: { type: Boolean, default: false },
     movementsHistory: { type: [MovementSchema], required: true },
