@@ -14,10 +14,7 @@ const scrapCivilOne = async (rol: string) => {
     const collect = await cause.getCivilCauseDetail(rol);
 
     if (cause.hasReplaceCivilDetail) {
-      await CauseCivil.replaceOne(
-        { rol: cause.rolConsulted },
-        cause.getCivilDetailReplacement()
-      );
+      await CauseCivil.replaceOne({ rol }, cause.getCivilDetailReplacement());
     } else {
       await CauseCivil.insertMany(collect);
       console.log("Collect saved");

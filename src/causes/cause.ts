@@ -2,8 +2,6 @@ import { CivilCauseRolCollectScrape } from "./civil-cause-rol.collect";
 import { CivilCauseActiveScrape } from "./civil-cause.active";
 
 export class Cause {
-  private rol: string = "";
-
   constructor(
     private readonly civilActiveScrap: CivilCauseActiveScrape,
     private readonly civilDetailScrap: CivilCauseRolCollectScrape
@@ -19,7 +17,6 @@ export class Cause {
   }
 
   async getCivilCauseDetail(rol: string) {
-    this.rol = rol;
     await this.civilDetailScrap.init();
     await this.civilDetailScrap.navigateToCivilCausesTab();
     await this.civilDetailScrap.applyRolFilter(rol);
@@ -37,9 +34,5 @@ export class Cause {
 
   public getCivilDetailReplacement() {
     return this.civilDetailScrap.getCauseCivil();
-  }
-
-  public get rolConsulted(): string {
-    return this.rol;
   }
 }
