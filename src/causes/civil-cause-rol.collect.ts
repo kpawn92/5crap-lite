@@ -12,7 +12,12 @@ import { CivilCauseExtractFailed } from "./civil-extract-doc.failed";
 
 export class CivilCauseRolCollectScrape {
   private anchors: Array<Anchor> = [];
-  private readonly causes: Array<CauseCivilPrimitives> = [];
+  private civils: Omit<
+    CauseCivilPrimitives,
+    "movementsHistory" | "litigants"
+  >[] = [];
+  private histories: Movement[] = [];
+  private litigants: Litigant[] = [];
   private causePersist: CauseCivilPrimitives | null = null;
   public hasUpdate: boolean = false;
   private causeTemp: string = "";
@@ -110,7 +115,6 @@ export class CivilCauseRolCollectScrape {
         console.log("Process finish: There are no civil cases to download");
         return process.exit();
       }
-      let flag = false;
       for (const [index, anchor] of this.anchors.entries()) {
         console.log(`Processing cause ${index + 1}/${this.anchors.length}...`);
         await this.scrap.execute(anchor.script);
@@ -120,46 +124,74 @@ export class CivilCauseRolCollectScrape {
 
         const movementsHistory = await this.extractMovementsHistory();
         await this.scrap.timeout(1000);
+        console.log("Book: ", book);
         const movements = movementsHistory.map((item) => ({
           ...item,
           book,
         }));
-
         const litigants = await this.extractLitigants();
-        if (
-          !this.hasChangesMovements(movements) &&
-          !this.hasChangesLitigants(litigants)
-        ) {
-          flag = true;
-          console.log("There are no changes in the rol cause");
-          break;
-        } else if (this.causePersist) {
-          this.hasUpdate = true;
-        }
+
+        this.civils.push(causeDetails);
+        this.histories.push(...movements);
+        litigants.map((l) => this.addLitigantIfNotExists(l));
+        // this.litigants.push(...litigants);
 
         console.table(causeDetails);
         console.log(movementsHistory.length);
         console.table(litigants);
 
-        this.causes.push({
-          ...causeDetails,
-          movementsHistory: movements,
-          litigants,
-        });
-
         await this.closeModal();
         await this.scrap.timeout(2000);
+      }
+
+      await this.hasChanges();
+    } catch (error) {
+      console.error("Error collecting details:", error);
+      throw error;
+    }
+  }
+
+  private async hasChanges() {
+    try {
+      let flag = false;
+
+      if (
+        !this.hasChangesMovements(this.histories) &&
+        !this.hasChangesLitigants(this.litigants)
+      ) {
+        flag = true;
+        console.log("There are no changes in the rol cause");
+      } else if (this.causePersist) {
+        this.hasUpdate = true;
       }
 
       if (flag) {
         await this.finish();
         return process.exit();
       }
-      console.log(`Total causes collected: ${this.causes.length}`);
     } catch (error) {
-      console.error("Error collecting details:", error);
+      console.error("Error validating if there are changes in the role");
       throw error;
     }
+  }
+
+  public getCauseCivil(): CauseCivilPrimitives {
+    const civilcause = this.civils[0];
+
+    return {
+      ...civilcause,
+      litigants: this.litigants,
+      movementsHistory: this.histories.map((history) => ({
+        ...history,
+        document: history.document.map((doc, index) => {
+          return `${this.parseStringToCode(
+            history.procedure
+          )}_${this.parseStringToCode(history.descProcedure)}_${this.codeUnique(
+            history.dateProcedure
+          )}_[${index}].pdf`;
+        }),
+      })),
+    };
   }
 
   private hasChangesMovements(movements: Movement[]): boolean {
@@ -221,24 +253,6 @@ export class CivilCauseRolCollectScrape {
     return this.downloadPDF(urls);
   }
 
-  public getCauses(): CauseCivilPrimitives[] {
-    return this.causes.map((cause) => {
-      return {
-        ...cause,
-        movementsHistory: cause.movementsHistory.map((history) => ({
-          ...history,
-          document: history.document.map((doc, index) => {
-            return `${this.parseStringToCode(
-              history.procedure
-            )}_${this.parseStringToCode(
-              history.descProcedure
-            )}_${this.codeUnique(history.dateProcedure)}_[${index}].pdf`;
-          }),
-        })),
-      };
-    });
-  }
-
   private async downloadPDF(urls: Documentation[]) {
     console.log(`Starting document download for ${urls.length} documents...`);
     await Promise.allSettled(urls.map((doc) => this.extractDocument(doc)));
@@ -290,6 +304,7 @@ export class CivilCauseRolCollectScrape {
         'div[style="background-color:#F9F9F9"]',
         5000
       );
+      await this.scrap.waitForSelector("select#selCuaderno");
 
       const causeDetails = await this.page.evaluate(() => {
         const getTextContent = (selector: string): string =>
@@ -410,19 +425,36 @@ export class CivilCauseRolCollectScrape {
     }
   }
 
+  private addLitigantIfNotExists(newLitigant: Litigant) {
+    // Verificamos si el litigante ya existe en el array comparando todas las propiedades relevantes
+    const exists = this.litigants.some(
+      (litigant) =>
+        litigant.participant === newLitigant.participant &&
+        litigant.rut === newLitigant.rut &&
+        litigant.person === newLitigant.person &&
+        litigant.name === newLitigant.name
+    );
+
+    // Si no existe, lo agregamos al array
+    if (!exists) {
+      this.litigants.push(newLitigant);
+      console.log("Litigant add");
+    } else {
+      console.log("Litigant already exists");
+    }
+  }
+
   private getURLs(): Documentation[] {
     const documents: Documentation[] = [];
 
-    this.causes.forEach((civil) => {
-      civil.movementsHistory.forEach((movement) => {
-        movement.document.forEach((url, index) => {
-          documents.push({
-            index,
-            url,
-            dateProcedure: movement.dateProcedure,
-            descProcedure: movement.descProcedure,
-            procedure: movement.procedure,
-          });
+    this.histories.forEach((movement) => {
+      movement.document.forEach((url, index) => {
+        documents.push({
+          index,
+          url,
+          dateProcedure: movement.dateProcedure,
+          descProcedure: movement.descProcedure,
+          procedure: movement.procedure,
         });
       });
     });
@@ -432,7 +464,6 @@ export class CivilCauseRolCollectScrape {
 
   private async extractDocument(doc: Documentation) {
     const { url, dateProcedure, descProcedure, index, procedure } = doc;
-    // const filename = url.split("?").at(1)?.split(".").at(2) || "";
     const filename = `${this.parseStringToCode(
       procedure
     )}_${this.parseStringToCode(descProcedure)}_${this.codeUnique(
@@ -472,7 +503,6 @@ export class CivilCauseRolCollectScrape {
       }
     }, pdfUrl);
 
-    // console.log(pdfBuffer?.length || "");
     if (!pdfBuffer) {
       console.log("No PDF buffer received");
     }

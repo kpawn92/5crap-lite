@@ -57,7 +57,7 @@ export class ScrapService {
     await this.timeout(2000);
   }
 
-  async clickElement(selector: string, delay: number): Promise<void> {
+  async clickElement(selector: string, delay = 1000): Promise<void> {
     await this.page?.waitForSelector(selector, { timeout: 0 });
     await this.page?.click(selector);
     await this.timeout(delay);

@@ -28,7 +28,7 @@ export class Cause {
     await this.civilDetailScrap.collectDocuments();
     await this.civilDetailScrap.finish();
 
-    return this.civilDetailScrap.getCauses();
+    return this.civilDetailScrap.getCauseCivil();
   }
 
   public get hasReplaceCivilDetail(): boolean {
@@ -36,7 +36,7 @@ export class Cause {
   }
 
   public getCivilDetailReplacement() {
-    return this.civilDetailScrap.getCauses().at(0);
+    return this.civilDetailScrap.getCauseCivil();
   }
 
   public get rolConsulted(): string {

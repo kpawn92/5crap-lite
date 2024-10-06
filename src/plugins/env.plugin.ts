@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import * as dotenv from "dotenv";
 
 if (process.env.NODE_ENV !== "production") {
-  dotenv.config({ path: resolve(__dirname, "/../../.env") });
+  dotenv.config({ path: resolve(__dirname, "../../.env") });
 }
 
 export const envs = {
