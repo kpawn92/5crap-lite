@@ -6,8 +6,9 @@
   "scripts": {
     "dev:one": "ts-node-dev --respawn --transpile-only --env-file=.env src/scrap-civil-one.ts",
     "dev:all": "ts-node-dev --respawn --transpile-only --env-file=.env src/scrap-civil-all.ts",
-    "start:one": "NODE_ENV=production node dist/scrap-civil-one.js",
-    "start:all": "NODE_ENV=production node dist/scrap-civil-all.js",
+    "start:one": "pnpm r:env && node dist/scrap-civil-one.js",
+    "start:all": "pnpm r:env && node dist/scrap-civil-all.js",
+    "r:env": "cross-env NODE_ENV=production RUT=RUT PASS=PASS MONGO_URI=MONGO_URI MONGO_DB_NAME=MONGO_DB_NAME MONGO_USER=MONGO_USER MONGO_PASS=MONGO_PASS",
     "build": "tsc"
   },
   "keywords": [],
@@ -20,6 +21,7 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
+    "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
     "env-var": "^7.5.0",
     "mongoose": "^8.6.0",

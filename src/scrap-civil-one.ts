@@ -2,7 +2,7 @@ import { cause } from "./causes";
 import { CauseCivil, MongoDatabase } from "./db";
 import { envs } from "./plugins";
 
-(async () => {
+const scrapCivilOne = async (rol: string) => {
   try {
     console.log("Capture the details one civil cause initialized...");
 
@@ -11,7 +11,7 @@ import { envs } from "./plugins";
       dbName: envs.MONGO_DB_NAME,
     });
 
-    const collect = await cause.getCivilCauseDetail("C-2622-2024");
+    const collect = await cause.getCivilCauseDetail(rol);
 
     if (cause.hasReplaceCivilDetail) {
       await CauseCivil.replaceOne(
@@ -24,9 +24,11 @@ import { envs } from "./plugins";
     }
 
     console.log("Process finish");
-    process.exit(0);
+    process.exit();
   } catch (error) {
     console.error(error);
     process.exit();
   }
-})();
+};
+
+scrapCivilOne("C-2622-2024");

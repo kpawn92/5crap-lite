@@ -2,7 +2,7 @@ import { cause } from "./causes";
 import { CivilCauseActive, MongoDatabase } from "./db";
 import { envs } from "./plugins";
 
-(async () => {
+const scrapCivilAll = async () => {
   try {
     console.log("Capture all civil cause initialized...");
 
@@ -20,4 +20,6 @@ import { envs } from "./plugins";
     console.error(error);
     process.exit();
   }
-})();
+};
+
+scrapCivilAll();
