@@ -4,8 +4,8 @@
   "description": "Scraping causes",
   "main": "main.js",
   "scripts": {
-    "dev:one": "ts-node-dev --respawn --transpile-only src/scrap-civil-one.ts",
-    "dev:all": "ts-node-dev --respawn --transpile-only src/scrap-civil-all.ts",
+    "dev:one": "ts-node-dev --respawn --transpile-only --env-file=.env src/scrap-civil-one.ts",
+    "dev:all": "ts-node-dev --respawn --transpile-only --env-file=.env src/scrap-civil-all.ts",
     "start:one": "NODE_ENV=production node dist/scrap-civil-one.js",
     "start:all": "NODE_ENV=production node dist/scrap-civil-all.js",
     "build": "tsc"
@@ -22,6 +22,9 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "env-var": "^7.5.0",
-    "mongoose": "^8.6.0"
+    "mongoose": "^8.6.0",
+    "puppeteer": "^23.5.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
