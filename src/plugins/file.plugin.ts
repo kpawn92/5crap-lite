@@ -22,7 +22,7 @@ export class FileSystemService {
     const destination = path.join(this.documentPath, subPath);
     this.checkPath(destination);
     const buff = Buffer.from(pdfArray);
-    const filePath = path.join(destination, `${filename}.pdf`);
+    const filePath = path.join(destination, `${filename}`);
     fs.writeFileSync(filePath, buff);
   }
 

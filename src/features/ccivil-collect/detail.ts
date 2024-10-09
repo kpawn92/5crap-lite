@@ -1,7 +1,7 @@
-import { Litigant, Movement } from "./civil-cause.types";
+import { Litigant, Movement } from "./civil-detail";
 
 type InputType = { [key: string]: any };
-export class CivilCauseDetail {
+export class CCDetail {
   readonly rol: string;
   readonly cover: string;
   readonly estAdmin: string;
@@ -49,7 +49,7 @@ export class CivilCauseDetail {
     this.litigants = litigants;
   }
 
-  static create(input: InputType): CivilCauseDetail {
-    return new CivilCauseDetail(input);
+  static instance(input: InputType): CCDetail {
+    return new CCDetail(input);
   }
 }

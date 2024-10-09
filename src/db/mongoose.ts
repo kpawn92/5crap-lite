@@ -21,3 +21,19 @@ export class MongoDatabase {
     }
   }
 }
+
+export const mongodb = {
+  connect: async (options: Options) => {
+    const {dbName, url} = options
+    try {
+      await mongoose.connect(url, {
+        dbName,
+      });
+
+      console.log("Mongo connected!");
+    } catch (error) {
+      console.log("Mongo connect error");
+      throw error;
+    }
+  },
+};

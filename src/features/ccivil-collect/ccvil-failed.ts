@@ -1,45 +1,43 @@
-import { ScrapService } from "../plugins";
-import { Anchor, Documentation } from "./civil-cause.types";
+import { parseDate } from "../../tools/parse-date";
+import { Scrape } from "../../tools/scrape";
+import { timeout } from "../../tools/timeout";
+import type { Anchor, Documentation } from "./civil-detail";
 
-export class CivilCauseExtractFailed {
+export class CivilFailed {
+  private readonly newURLs: Documentation[] = [];
+
   constructor(
+    private readonly scrap: Scrape,
     private docs: Documentation[],
-    private readonly anchors: Anchor[],
-    private readonly scrap: ScrapService,
-    private readonly urls: Documentation[] = []
+    private readonly anchors: Anchor[]
   ) {}
 
-  private async collectDetails(): Promise<void> {
+  async getNewsURLs() {
+    await this.launchModal();
+    return this.newURLs;
+  }
+
+  private async launchModal(): Promise<void> {
     try {
       for (const [index, anchor] of this.anchors.entries()) {
         console.log(`Processing cause ${index + 1}/${this.anchors.length}...`);
         await this.scrap.execute(anchor.script);
-        await this.scrap.timeout(1500);
+        await timeout(1500);
 
         for (const doc of this.docs) {
           const newDoc = await this.extractDocURL(doc);
-          newDoc && this.urls.push(newDoc);
+          newDoc && this.newURLs.push(newDoc);
         }
 
-        await this.scrap.timeout(1000);
+        await timeout(1000);
 
         await this.closeModal();
-        await this.scrap.timeout(2000);
+        await timeout(2000);
       }
     } catch (error) {
       console.error("Error collecting details:", error);
       throw error;
     }
-  }
-
-  private parseDate(dateString: string): Date {
-    const [day, month, year] = dateString.split("/").map(Number);
-    return new Date(year, month - 1, day);
-  }
-
-  async getNewsURLs() {
-    await this.collectDetails();
-    return this.urls;
   }
 
   private async extractDocURL(
@@ -49,7 +47,7 @@ export class CivilCauseExtractFailed {
     try {
       await this.scrap.waitForSelector("div#loadHistCuadernoCiv", 5000);
 
-      const movements = await this.scrap.getPage().evaluate(() => {
+      const movements = await this.scrap.page.evaluate(() => {
         const container = document.querySelector<HTMLDivElement>(
           "div#loadHistCuadernoCiv"
         );
@@ -92,14 +90,15 @@ export class CivilCauseExtractFailed {
         });
       });
       const newDoc = movements.find(
-        (item) => item.procedure === procedure && descProcedure
+        (item) =>
+          item.procedure === procedure && item.descProcedure === descProcedure
       );
       if (!newDoc || !newDoc.document[index]) return null;
 
       return {
         index,
         url: newDoc.document[index],
-        dateProcedure: this.parseDate(newDoc.dateProcedure),
+        dateProcedure: parseDate(newDoc.dateProcedure),
         descProcedure: newDoc.descProcedure,
         procedure: newDoc.procedure,
       };
@@ -110,7 +109,7 @@ export class CivilCauseExtractFailed {
   }
 
   private async closeModal() {
-    return this.scrap.getPage().evaluate(() => {
+    return this.scrap.page.evaluate(() => {
       const close = document.querySelector<HTMLButtonElement>("button.close");
       close?.click();
     });

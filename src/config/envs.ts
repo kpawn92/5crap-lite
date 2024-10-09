@@ -13,5 +13,6 @@ export const envs = {
   MONGO_USER: env.get("MONGO_USER").required().asString(),
   MONGO_PASS: env.get("MONGO_PASS").required().asString(),
   MONGO_DB_NAME: env.get("MONGO_DB_NAME").required().asString(),
+  PAGE: env.get("PAGE").required().asString(),
   NODE_ENV: env.get("NODE_ENV").default("development").asString(),
 };

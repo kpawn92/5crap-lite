@@ -1,5 +1,5 @@
 type InputType = { [key: string]: any };
-export class CivilCause {
+export class Civil {
   readonly rol: string;
   readonly court: string;
   readonly cover: string;
@@ -23,7 +23,7 @@ export class CivilCause {
     this.book = book;
   }
 
-  static create(input: InputType): CivilCause {
-    return new CivilCause(input);
+  static instance(input: InputType): Civil {
+    return new Civil(input);
   }
 }
