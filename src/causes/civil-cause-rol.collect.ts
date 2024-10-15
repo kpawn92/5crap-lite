@@ -546,17 +546,24 @@ export class CivilCauseRolCollectScrape {
     const day = date.getDate().toString().padStart(2, "0"); // Día con dos dígitos
 
     // Generar un número aleatorio de 4 dígitos
-    const randomPart = Math.floor(1000 + Math.random() * 9000).toString();
+    // const randomPart = Math.floor(1000 + Math.random() * 9000).toString();
 
-    // Combinar el prefijo, la fecha y el número aleatorio para formar el código
-    const code = `${year}${month}${day}_${randomPart}`;
+    const code = `${year}${month}${day}`;
 
     return code;
   }
 
   private parseStringToCode(value: string): string {
-    const arrValues = value.split(" ");
-    return arrValues.map((item) => item.toLowerCase()).join("_");
+    const chars = value
+      .toLowerCase()
+      .replaceAll("ñ", "n")
+      .replaceAll("á", "a")
+      .replaceAll("é", "e")
+      .replaceAll("í", "i")
+      .replaceAll("ó", "o")
+      .replaceAll("ú", "u")
+      .split(" ");
+    return chars.join("_");
   }
 
   private get page() {
