@@ -73,9 +73,10 @@ export class CivilCauseActiveScrape {
   async collectCauses(): Promise<void> {
     try {
       await this.scrap.waitForSelector("tbody#verDetalleMisCauCiv", 3000);
-      await this.scrap.waitForSelector("div.loadTotalCiv");
+      // await this.scrap.waitForSelector("div.loadTotalCiv");
       await this.scrap.simuleBodyAction();
 
+      await this.scrap.timeout(1500);
       const totalItems = await this.getTotalItems();
       const pagination = Pagination.calculate(totalItems);
       const totalPages = pagination.length;
@@ -131,10 +132,10 @@ export class CivilCauseActiveScrape {
   }
 
   private async collectRit(): Promise<CivilCauseActive[]> {
-    await this.scrap.waitForSelector("div.loadTotalCiv>b");
+    // await this.scrap.waitForSelector("div.loadTotalCiv>b");
     const causes = await this.page.evaluate(() => {
       const rows = Array.from(
-        document.querySelectorAll("tbody#verDetalleMisCauCiv>tr")
+        document.querySelectorAll("tbody#verDetalleMisCauCiv>tr") || []
       );
 
       return rows

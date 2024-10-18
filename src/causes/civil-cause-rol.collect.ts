@@ -555,6 +555,7 @@ export class CivilCauseRolCollectScrape {
 
   private parseStringToCode(value: string): string {
     const chars = value
+      .trim()
       .toLowerCase()
       .replaceAll("ñ", "n")
       .replaceAll("á", "a")
