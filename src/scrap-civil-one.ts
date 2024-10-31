@@ -2,7 +2,7 @@ import { cause } from "./causes";
 import { CauseCivil, MongoDatabase } from "./db";
 import { envs } from "./plugins";
 
-const scrapCivilOne = async (rol: string) => {
+export const scrapCivilOne = async (rol: string) => {
   try {
     console.log("Capture the details one civil cause initialized...");
 
@@ -29,4 +29,6 @@ const scrapCivilOne = async (rol: string) => {
   }
 };
 
-scrapCivilOne("C-2622-2024");
+// export { scrapCivilOne };
+
+// scrapCivilOne("C-392-2024");

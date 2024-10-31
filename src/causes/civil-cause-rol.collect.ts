@@ -9,7 +9,6 @@ import {
   Movement,
 } from "./civil-cause.types";
 import { CivilCauseExtractFailed } from "./civil-extract-doc.failed";
-
 export class CivilCauseRolCollectScrape {
   private anchors: Array<Anchor> = [];
   private civils: Omit<
@@ -22,7 +21,6 @@ export class CivilCauseRolCollectScrape {
   public hasUpdate: boolean = false;
   private causeTemp: string = "";
   private failedDocs: Documentation[] = [];
-
   constructor(
     private readonly scrap: ScrapService,
     private readonly file: FileSystemService
@@ -557,12 +555,18 @@ export class CivilCauseRolCollectScrape {
     const chars = value
       .trim()
       .toLowerCase()
-      .replaceAll("ñ", "n")
       .replaceAll("á", "a")
       .replaceAll("é", "e")
       .replaceAll("í", "i")
       .replaceAll("ó", "o")
       .replaceAll("ú", "u")
+      .replaceAll("ñ", "n")
+      .replaceAll("|", "_")
+      .replaceAll("/", "_")
+      .replaceAll('"', "_")
+      .replaceAll("'", "_")
+      .replaceAll("`", "_")
+      .replaceAll("\\", "_")
       .split(" ");
     return chars.join("_");
   }

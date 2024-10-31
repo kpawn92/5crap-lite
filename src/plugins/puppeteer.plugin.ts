@@ -10,7 +10,7 @@ export class ScrapService {
 
   async init(url = "https://oficinajudicialvirtual.pjud.cl/home/index.php") {
     this.browser = await puppeteer.launch({
-      headless: false,
+      headless: envs.BROWSER_HEADLESS,
       defaultViewport: null,
       slowMo: 400,
     });
