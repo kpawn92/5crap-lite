@@ -4,6 +4,7 @@
   "description": "Scraping causes",
   "main": "main.js",
   "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only --env-file=.env src/unified.ts",
     "dev:one": "ts-node-dev --respawn --transpile-only --env-file=.env src/scrap-civil-one.ts",
     "dev:all": "ts-node-dev --respawn --transpile-only --env-file=.env src/scrap-civil-all.ts",
     "start:one": "pnpm r:env && node dist/scrap-civil-one.js",

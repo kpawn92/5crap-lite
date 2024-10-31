@@ -10,6 +10,7 @@ const scrapCivilOne = async (rol: string) => {
       url: envs.MONGO_URI,
       dbName: envs.MONGO_DB_NAME,
     });
+    // process.exit();
 
     const collect = await cause.getCivilCauseDetail(rol);
 

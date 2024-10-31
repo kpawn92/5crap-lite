@@ -15,6 +15,12 @@ export class ScrapService {
       slowMo: 400,
     });
     this.page = await this.browser.newPage();
+
+    //? Modify navigator.webdriver before load page.
+    await this.page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, "webdriver", { get: () => false });
+    });
+
     await this.page.goto(url, {
       waitUntil: "domcontentloaded",
       timeout: 0,
@@ -63,8 +69,12 @@ export class ScrapService {
     await this.timeout(delay);
   }
 
-  async waitForSelector(selector: string, delay = 1000): Promise<void> {
-    await this.page?.waitForSelector(selector, { timeout: 0 });
+  async waitForSelector(
+    selector: string,
+    delay = 1000,
+    visible?: boolean
+  ): Promise<void> {
+    await this.page?.waitForSelector(selector, { timeout: 0, visible });
     await this.timeout(delay);
   }
 
@@ -82,35 +92,3 @@ export class ScrapService {
     console.log("Scrap finish");
   }
 }
-
-// export async function scraper(
-//   url = "https://oficinajudicialvirtual.pjud.cl/home/index.php"
-// ) {
-//   const browser = await puppeteer.launch({
-//     headless: false,
-//     defaultViewport: null,
-//     slowMo: 400,
-//   });
-//   const page = await browser.newPage();
-//   await page.goto(url, {
-//     waitUntil: "domcontentloaded",
-//     timeout: 0,
-//   });
-
-//   await page.evaluate(() => {
-//     eval("AutenticaCUnica();");
-//   });
-//   await timeout(4000);
-
-//   await page.waitForSelector("input#uname", { timeout: 0 });
-//   await page.waitForSelector('input[type="password"]', { timeout: 0 });
-
-//   await page.type("input#uname", RUT);
-//   await page.type('input[type="password"]', PASS);
-//   await page.click("button#login-submit");
-//   await page.waitForNavigation({
-//     waitUntil: "domcontentloaded",
-//     timeout: 0,
-//   });
-//   await timeout(2000);
-// }
