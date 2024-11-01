@@ -297,7 +297,7 @@ export class UnifiedQuery {
       procedure
     )}_${this.parseStringToCode(descProcedure)}_${this.codeUnique(
       dateProcedure
-    )}_[${index}]`;
+    )}_${index}`;
 
     console.log(`Init extract document: ${filename}.pdf`);
     const pdfArray = await this.extractPDF(url);
