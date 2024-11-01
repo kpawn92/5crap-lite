@@ -566,6 +566,7 @@ export class CivilCauseRolCollectScrape {
       .replaceAll('"', "_")
       .replaceAll("'", "_")
       .replaceAll("`", "_")
+      .replaceAll(":", "_")
       .replaceAll("\\", "_")
       .split(" ");
     return chars.join("_");
