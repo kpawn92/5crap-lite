@@ -356,7 +356,7 @@ export class UnifiedQuery {
             history.procedure
           )}_${this.parseStringToCode(history.descProcedure)}_${this.codeUnique(
             history.dateProcedure
-          )}_[${index}].pdf`;
+          )}_${index}.pdf`;
         }),
       })),
     };

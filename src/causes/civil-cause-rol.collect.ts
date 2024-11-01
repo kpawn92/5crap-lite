@@ -186,7 +186,7 @@ export class CivilCauseRolCollectScrape {
             history.procedure
           )}_${this.parseStringToCode(history.descProcedure)}_${this.codeUnique(
             history.dateProcedure
-          )}_[${index}].pdf`;
+          )}_${index}.pdf`;
         }),
       })),
     };
@@ -466,7 +466,7 @@ export class CivilCauseRolCollectScrape {
       procedure
     )}_${this.parseStringToCode(descProcedure)}_${this.codeUnique(
       dateProcedure
-    )}_[${index}]`;
+    )}_${index}`;
 
     console.log(`Init extract document: ${filename}.pdf`);
     const pdfArray = await this.extractPDF(url);
