@@ -77,3 +77,8 @@ export const CauseCivil = mongoose.model<CauseCivilPrimitives>(
   "CauseCivil",
   CauseCivilSchema
 );
+
+export const CauseCivilUpdater = mongoose.model<CauseCivilPrimitives>(
+  "CauseCivilUpdater",
+  CauseCivilSchema
+);
