@@ -5,4 +5,5 @@ documents/
 dist/
 public/
 production.md
+*.txt
 

@@ -351,7 +351,7 @@ export class UnifiedQuery {
       litigants: this.litigants,
       movementsHistory: this.histories.map((history) => ({
         ...history,
-        document: history.document.map((doc, index) => {
+        document: history.document.map((_doc, index) => {
           return `${this.parseStringToCode(
             history.procedure
           )}_${this.parseStringToCode(history.descProcedure)}_${this.codeUnique(
