@@ -259,7 +259,7 @@ export class Daily {
       procedure
     )}_${this.parseStringToCode(descProcedure)}_${this.codeUnique(
       dateProcedure
-    )}_[${index}]`;
+    )}_${index}`;
 
     console.log(`Init extract document: ${filename}.pdf`);
     const pdfArray = await this.extractPDF(url);
@@ -312,7 +312,7 @@ export class Daily {
               history.procedure
             )}_${this.parseStringToCode(
               history.descProcedure
-            )}_${this.codeUnique(history.dateProcedure)}_[${idx}].pdf`;
+            )}_${this.codeUnique(history.dateProcedure)}_${idx}.pdf`;
           }),
         })
       ),

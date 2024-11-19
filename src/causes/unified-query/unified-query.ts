@@ -9,8 +9,8 @@ import {
 } from "../civil-cause.types";
 
 export interface UnifiedFilters {
-  court: string;
-  tribune: string;
+  court: string | number;
+  tribune: string | number;
   rol: string;
 }
 
@@ -61,54 +61,60 @@ export class UnifiedQuery {
         timeout: 0,
         visible: true,
       });
-      await this.page.select("select#competencia", "3"); // Select civil static
+      await this.page.select("select#competencia", "3");
       await wait(500);
 
       await this.page.click("select#conCorte", { delay: 1000 });
-      const cortOptions = await this.page.evaluate(() => {
-        const cortSelect =
-          document.querySelector<HTMLSelectElement>("select#conCorte");
-        const options = Array.from(
-          cortSelect?.querySelectorAll("option") || []
-        );
-
-        return options.map((item) => ({
-          value: item.value,
-          label: item.textContent?.trim() || "",
-        }));
-      });
-      console.table(cortOptions);
-      const cortOption = cortOptions.find((item) =>
-        item.label.toLowerCase().includes(court.toLowerCase())
-      );
-      if (cortOption) {
-        console.log(cortOption);
-        await this.page.select("select#conCorte", cortOption.value);
-        await wait(1000);
-      }
+      await this.page.select("select#conCorte", court.toString());
+      await wait(500);
 
       await this.page.click("select#conTribunal", { delay: 1000 });
-      const tribunalOptions = await this.page.evaluate(() => {
-        const cortSelect =
-          document.querySelector<HTMLSelectElement>("select#conTribunal");
-        const options = Array.from(
-          cortSelect?.querySelectorAll("option") || []
-        );
+      await this.page.select("select#conTribunal", tribune.toString());
+      await wait(500);
 
-        return options.map((item) => ({
-          value: item.value,
-          label: item.textContent?.trim() || "",
-        }));
-      });
-      console.table(tribunalOptions);
-      const tribuneOption = tribunalOptions.find((item) =>
-        item.label.toLowerCase().includes(tribune.toLowerCase())
-      );
-      if (tribuneOption) {
-        console.log(tribuneOption);
-        await this.page.select("select#conTribunal", tribuneOption.value);
-        await wait(1000);
-      }
+      // const cortOptions = await this.page.evaluate(() => {
+      //   const cortSelect =
+      //     document.querySelector<HTMLSelectElement>("select#conCorte");
+      //   const options = Array.from(
+      //     cortSelect?.querySelectorAll("option") || []
+      //   );
+
+      //   return options.map((item) => ({
+      //     value: item.value,
+      //     label: item.textContent?.trim() || "",
+      //   }));
+      // });
+      // console.table(cortOptions);
+      // const cortOption = cortOptions.find((item) =>
+      //   item.label.toLowerCase().includes(court.toLowerCase())
+      // );
+      // if (cortOption) {
+      //   console.log(cortOption);
+      //   await this.page.select("select#conCorte", cortOption.value);
+      //   await wait(1000);
+      // }
+
+      // const tribunalOptions = await this.page.evaluate(() => {
+      //   const cortSelect =
+      //     document.querySelector<HTMLSelectElement>("select#conTribunal");
+      //   const options = Array.from(
+      //     cortSelect?.querySelectorAll("option") || []
+      //   );
+
+      //   return options.map((item) => ({
+      //     value: item.value,
+      //     label: item.textContent?.trim() || "",
+      //   }));
+      // });
+      // console.table(tribunalOptions);
+      // const tribuneOption = tribunalOptions.find((item) =>
+      //   item.label.toLowerCase().includes(tribune.toLowerCase())
+      // );
+      // if (tribuneOption) {
+      //   console.log(tribuneOption);
+      //   await this.page.select("select#conTribunal", tribuneOption.value);
+      //   await wait(1000);
+      // }
 
       const [type, ...paramsRol] = rol.split("-");
       await this.page.select("select#conTipoCausa", type);
@@ -297,7 +303,7 @@ export class UnifiedQuery {
       procedure
     )}_${this.parseStringToCode(descProcedure)}_${this.codeUnique(
       dateProcedure
-    )}_[${index}]`;
+    )}_${index}`;
 
     console.log(`Init extract document: ${filename}.pdf`);
     const pdfArray = await this.extractPDF(url);
@@ -356,7 +362,7 @@ export class UnifiedQuery {
             history.procedure
           )}_${this.parseStringToCode(history.descProcedure)}_${this.codeUnique(
             history.dateProcedure
-          )}_[${index}].pdf`;
+          )}_${index}.pdf`;
         }),
       })),
     };
