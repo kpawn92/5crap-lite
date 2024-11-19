@@ -259,7 +259,7 @@ export class Daily {
       procedure
     )}_${this.parseStringToCode(descProcedure)}_${this.codeUnique(
       dateProcedure
-    )}_[${index}]`;
+    )}_${index}`;
 
     console.log(`Init extract document: ${filename}.pdf`);
     const pdfArray = await this.extractPDF(url);
@@ -304,16 +304,18 @@ export class Daily {
   public getccivils(): CauseCivilPrimitives[] {
     return this.civils.map((cause) => ({
       ...cause,
-      movementsHistory: cause.movementsHistory.map((history) => ({
-        ...history,
-        document: history.document.map((_doc, idx) => {
-          return `${this.parseStringToCode(
-            history.procedure
-          )}_${this.parseStringToCode(history.descProcedure)}_${this.codeUnique(
-            history.dateProcedure
-          )}_[${idx}].pdf`;
-        }),
-      })),
+      movementsHistory: cause.movementsHistory.map(
+        ({ document, ...history }) => ({
+          ...history,
+          document: document.map((_doc, idx) => {
+            return `${this.parseStringToCode(
+              history.procedure
+            )}_${this.parseStringToCode(
+              history.descProcedure
+            )}_${this.codeUnique(history.dateProcedure)}_${idx}.pdf`;
+          }),
+        })
+      ),
     }));
   }
 

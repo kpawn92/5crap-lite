@@ -13,7 +13,7 @@ export const scrapeDaily = async (filters: FiltersDaily) => {
     process.exit();
   });
 
-  event.on("failedCaptureAnchors]", (msg) => {
+  event.on("failedCaptureAnchors", (msg) => {
     console.log(msg);
     process.exit();
   });
