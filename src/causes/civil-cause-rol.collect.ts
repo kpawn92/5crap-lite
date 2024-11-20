@@ -9,6 +9,7 @@ import {
   Movement,
 } from "./civil-cause.types";
 import { CivilCauseExtractFailed } from "./civil-extract-doc.failed";
+import { parseStringToCode } from "./parse-string";
 
 export class CivilCauseRolCollectScrape {
   private anchors: Array<Anchor> = [];
@@ -183,12 +184,10 @@ export class CivilCauseRolCollectScrape {
       litigants: this.litigants,
       movementsHistory: this.histories.map((history) => ({
         ...history,
-        document: history.document.map((doc, index) => {
-          return `${this.parseStringToCode(
-            history.procedure
-          )}_${this.parseStringToCode(history.descProcedure)}_${this.codeUnique(
-            history.dateProcedure
-          )}_[${index}].pdf`;
+        document: history.document.map((_doc, index) => {
+          return `${parseStringToCode(history.procedure)}_${parseStringToCode(
+            history.descProcedure
+          )}_${this.codeUnique(history.dateProcedure)}_${index}.pdf`;
         }),
       })),
     };
@@ -464,11 +463,9 @@ export class CivilCauseRolCollectScrape {
 
   private async extractDocument(doc: Documentation) {
     const { url, dateProcedure, descProcedure, index, procedure } = doc;
-    const filename = `${this.parseStringToCode(
-      procedure
-    )}_${this.parseStringToCode(descProcedure)}_${this.codeUnique(
-      dateProcedure
-    )}_[${index}]`;
+    const filename = `${parseStringToCode(procedure)}_${parseStringToCode(
+      descProcedure
+    )}_${this.codeUnique(dateProcedure)}_${index}`;
 
     console.log(`Init extract document: ${filename}.pdf`);
     const pdfArray = await this.extractPDF(url);
@@ -551,20 +548,6 @@ export class CivilCauseRolCollectScrape {
     const code = `${year}${month}${day}`;
 
     return code;
-  }
-
-  private parseStringToCode(value: string): string {
-    const chars = value
-      .trim()
-      .toLowerCase()
-      .replaceAll("ñ", "n")
-      .replaceAll("á", "a")
-      .replaceAll("é", "e")
-      .replaceAll("í", "i")
-      .replaceAll("ó", "o")
-      .replaceAll("ú", "u")
-      .split(" ");
-    return chars.join("_");
   }
 
   private get page() {

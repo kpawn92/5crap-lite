@@ -8,6 +8,7 @@ import {
   Litigant,
   Movement,
 } from "../civil-cause.types";
+import { parseStringToCode } from "../parse-string";
 
 export interface FiltersDaily {
   day: number;
@@ -255,11 +256,9 @@ export class Daily {
 
   private async extractDocument(doc: Doc) {
     const { url, dateProcedure, descProcedure, index, procedure } = doc;
-    const filename = `${this.parseStringToCode(
-      procedure
-    )}_${this.parseStringToCode(descProcedure)}_${this.codeUnique(
-      dateProcedure
-    )}_${index}`;
+    const filename = `${parseStringToCode(procedure)}_${parseStringToCode(
+      descProcedure
+    )}_${this.codeUnique(dateProcedure)}_${index}`;
 
     console.log(`Init extract document: ${filename}.pdf`);
     const pdfArray = await this.extractPDF(url);
@@ -308,9 +307,7 @@ export class Daily {
         ({ document, ...history }) => ({
           ...history,
           document: document.map((_doc, idx) => {
-            return `${this.parseStringToCode(
-              history.procedure
-            )}_${this.parseStringToCode(
+            return `${parseStringToCode(history.procedure)}_${parseStringToCode(
               history.descProcedure
             )}_${this.codeUnique(history.dateProcedure)}_${idx}.pdf`;
           }),
@@ -331,20 +328,6 @@ export class Daily {
     const code = `${year}${month}${day}`;
 
     return code;
-  }
-
-  private parseStringToCode(value: string): string {
-    const chars = value
-      .trim()
-      .toLowerCase()
-      .replaceAll("ñ", "n")
-      .replaceAll("á", "a")
-      .replaceAll("é", "e")
-      .replaceAll("í", "i")
-      .replaceAll("ó", "o")
-      .replaceAll("ú", "u")
-      .split(" ");
-    return chars.join("_");
   }
 
   private async extractLitigants(): Promise<Litigant[]> {

@@ -7,6 +7,7 @@ import {
   Litigant,
   Movement,
 } from "../civil-cause.types";
+import { parseStringToCode } from "../parse-string";
 
 export interface UnifiedFilters {
   court: string | number;
@@ -71,50 +72,6 @@ export class UnifiedQuery {
       await this.page.click("select#conTribunal", { delay: 1000 });
       await this.page.select("select#conTribunal", tribune.toString());
       await wait(500);
-
-      // const cortOptions = await this.page.evaluate(() => {
-      //   const cortSelect =
-      //     document.querySelector<HTMLSelectElement>("select#conCorte");
-      //   const options = Array.from(
-      //     cortSelect?.querySelectorAll("option") || []
-      //   );
-
-      //   return options.map((item) => ({
-      //     value: item.value,
-      //     label: item.textContent?.trim() || "",
-      //   }));
-      // });
-      // console.table(cortOptions);
-      // const cortOption = cortOptions.find((item) =>
-      //   item.label.toLowerCase().includes(court.toLowerCase())
-      // );
-      // if (cortOption) {
-      //   console.log(cortOption);
-      //   await this.page.select("select#conCorte", cortOption.value);
-      //   await wait(1000);
-      // }
-
-      // const tribunalOptions = await this.page.evaluate(() => {
-      //   const cortSelect =
-      //     document.querySelector<HTMLSelectElement>("select#conTribunal");
-      //   const options = Array.from(
-      //     cortSelect?.querySelectorAll("option") || []
-      //   );
-
-      //   return options.map((item) => ({
-      //     value: item.value,
-      //     label: item.textContent?.trim() || "",
-      //   }));
-      // });
-      // console.table(tribunalOptions);
-      // const tribuneOption = tribunalOptions.find((item) =>
-      //   item.label.toLowerCase().includes(tribune.toLowerCase())
-      // );
-      // if (tribuneOption) {
-      //   console.log(tribuneOption);
-      //   await this.page.select("select#conTribunal", tribuneOption.value);
-      //   await wait(1000);
-      // }
 
       const [type, ...paramsRol] = rol.split("-");
       await this.page.select("select#conTipoCausa", type);
@@ -299,11 +256,9 @@ export class UnifiedQuery {
 
   private async extractDocument(doc: Documentation) {
     const { url, dateProcedure, descProcedure, index, procedure } = doc;
-    const filename = `${this.parseStringToCode(
-      procedure
-    )}_${this.parseStringToCode(descProcedure)}_${this.codeUnique(
-      dateProcedure
-    )}_${index}`;
+    const filename = `${parseStringToCode(procedure)}_${parseStringToCode(
+      descProcedure
+    )}_${this.codeUnique(dateProcedure)}_${index}`;
 
     console.log(`Init extract document: ${filename}.pdf`);
     const pdfArray = await this.extractPDF(url);
@@ -358,11 +313,9 @@ export class UnifiedQuery {
       movementsHistory: this.histories.map((history) => ({
         ...history,
         document: history.document.map((_doc, index) => {
-          return `${this.parseStringToCode(
-            history.procedure
-          )}_${this.parseStringToCode(history.descProcedure)}_${this.codeUnique(
-            history.dateProcedure
-          )}_${index}.pdf`;
+          return `${parseStringToCode(history.procedure)}_${parseStringToCode(
+            history.descProcedure
+          )}_${this.codeUnique(history.dateProcedure)}_${index}.pdf`;
         }),
       })),
     };
@@ -380,20 +333,6 @@ export class UnifiedQuery {
     const code = `${year}${month}${day}`;
 
     return code;
-  }
-
-  private parseStringToCode(value: string): string {
-    const chars = value
-      .trim()
-      .toLowerCase()
-      .replaceAll("ñ", "n")
-      .replaceAll("á", "a")
-      .replaceAll("é", "e")
-      .replaceAll("í", "i")
-      .replaceAll("ó", "o")
-      .replaceAll("ú", "u")
-      .split(" ");
-    return chars.join("_");
   }
 
   private async extractLitigants(): Promise<Litigant[]> {
