@@ -83,17 +83,16 @@ export class FileSystemService {
     this.documentPath = path.join(__dirname, "/../../documents");
 
     if (this.isCloud) {
-      if (!options?.cloudConfig) throw "S3 undefined";
-      const { endpoint, region, bucket, accessKeyId, secretAccessKey } =
-        options.cloudConfig;
-      this.bucket = bucket;
+      // if (!options?.cloudConfig) throw "S3 undefined";
+      // const { endpoint, region, bucket, accessKeyId, secretAccessKey } = options.cloudConfig;
+      this.bucket = process.env.DO_SPACES_BUCKET!;
 
       this.s3Client = new S3Client({
-        endpoint,
-        region,
+        endpoint: process.env.DO_SPACES_URL!,
+        region: process.env.DO_SPACES_REGION!,
         credentials: {
-          accessKeyId,
-          secretAccessKey,
+          accessKeyId: process.env.DO_SPACES_ID_KEY!,
+          secretAccessKey: process.env.DO_SPACES_SECRET_KEY!,
         },
       });
     } else {
