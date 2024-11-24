@@ -1,10 +1,11 @@
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer-extra";
 import { envs } from "./env.plugin";
+import EventEmitter from "events";
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 
-export class ScrapService {
+export class ScrapService extends EventEmitter {
   private browser: Browser | null = null;
   private page: Page | null = null;
 
@@ -15,6 +16,8 @@ export class ScrapService {
       slowMo: 400,
     });
     this.page = await this.browser.newPage();
+
+    this.emit("initScrape", url);
 
     //? Modify navigator.webdriver before load page.
     await this.page.evaluateOnNewDocument(() => {
