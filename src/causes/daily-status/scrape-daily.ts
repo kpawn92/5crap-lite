@@ -11,11 +11,12 @@ export const scrapeDaily = async (filters: FiltersDaily) => {
   scrape.on("initScrape", async (url: string) => {
     try {
       const response = await fetch(url);
-      if (response.ok) {
-        console.log("URL active running");
+      if (!response.ok) {
+        console.log("URL for some reason does not work");
+        process.exit();
       }
+      console.log("URL active running");
     } catch (error) {
-      console.log("URL for some reason does not work");
       console.error(error);
       process.exit();
     }
