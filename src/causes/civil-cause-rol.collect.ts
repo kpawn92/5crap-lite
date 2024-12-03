@@ -9,6 +9,7 @@ import {
   Movement,
 } from "./civil-cause.types";
 import { CivilCauseExtractFailed } from "./civil-extract-doc.failed";
+import { HistoryScrape } from "./helpers/history-scrape";
 import { parseStringToCode } from "./parse-string";
 
 export class CivilCauseRolCollectScrape {
@@ -23,6 +24,7 @@ export class CivilCauseRolCollectScrape {
   public hasUpdate: boolean = false;
   private causeTemp: string = "";
   private failedDocs: Documentation[] = [];
+  public annex: string[] = [];
 
   constructor(
     private readonly scrap: ScrapService,
@@ -184,11 +186,13 @@ export class CivilCauseRolCollectScrape {
       litigants: this.litigants,
       movementsHistory: this.histories.map((history) => ({
         ...history,
-        document: history.document.map((_doc, index) => {
-          return `${parseStringToCode(history.procedure)}_${parseStringToCode(
-            history.descProcedure
-          )}_${this.codeUnique(history.dateProcedure)}_${index}.pdf`;
-        }),
+        document: history.document
+          .map((_doc, index) => {
+            return `${parseStringToCode(history.procedure)}_${parseStringToCode(
+              history.descProcedure
+            )}_${this.codeUnique(history.dateProcedure)}_${index}.pdf`;
+          })
+          .concat(this.annex.map((item) => `${item}.pdf`)),
       })),
     };
   }
@@ -343,53 +347,70 @@ export class CivilCauseRolCollectScrape {
     try {
       await this.scrap.waitForSelector("div#loadHistCuadernoCiv", 5000);
 
-      const movements = await this.page.evaluate(() => {
-        const container = document.querySelector<HTMLDivElement>(
-          "div#loadHistCuadernoCiv"
+      const historyScrape = new HistoryScrape(
+        this.page,
+        this.scrap.getBrowser(),
+        this.causeTemp,
+        this.file
+      );
+
+      const annexDocs = await historyScrape.start(async (newPage) => {
+        await this.scrap.clickElement(
+          'a[onclick="misCausas();"]',
+          3500,
+          newPage
         );
-        const table = container?.querySelector("table");
-
-        const rows = Array.from(table?.querySelectorAll("tbody>tr") || []);
-
-        return rows.map((row) => {
-          const cells = Array.from(row.querySelectorAll("td"));
-
-          const invoice = cells[0]?.textContent?.trim() || "";
-          const stage = cells[3]?.textContent?.trim() || "";
-          const procedure = cells[4]?.textContent?.trim() || "";
-          const descProcedure = cells[5]?.textContent?.trim() || "";
-          const dateProcedure = cells[6]?.textContent?.trim() || "";
-          const pageNumber = parseInt(cells[7]?.textContent?.trim() || "0", 10);
-
-          const documentForms = Array.from(
-            cells[1]?.querySelectorAll("form") || []
-          );
-          const documents = documentForms.map((form) => {
-            const action = form.getAttribute("action") || "";
-            const input = form.querySelector("input");
-            const queryName = input?.getAttribute("name") || "";
-            const queryValue = input?.getAttribute("value") || "";
-            const url = `${action}?${queryName}=${queryValue}`;
-
-            return url;
-          });
-
-          return {
-            invoice,
-            document: documents,
-            stage,
-            procedure,
-            descProcedure,
-            dateProcedure,
-            page: isNaN(pageNumber) ? 0 : pageNumber,
-          };
-        });
+        await this.scrap.clickElement("a#civilTab", 3500, newPage);
       });
 
-      return movements.map((movement) => ({
-        ...movement,
-        dateProcedure: this.parseDate(movement.dateProcedure),
-      }));
+      this.annex.push(...annexDocs);
+
+      const movements = historyScrape.getmovementsHistories();
+
+      // const movements = await this.page.evaluate(() => {
+      //   const container = document.querySelector<HTMLDivElement>(
+      //     "div#loadHistCuadernoCiv"
+      //   );
+      //   const table = container?.querySelector("table");
+
+      //   const rows = Array.from(table?.querySelectorAll("tbody>tr") || []);
+
+      //   return rows.map((row) => {
+      //     const cells = Array.from(row.querySelectorAll("td"));
+
+      //     const invoice = cells[0]?.textContent?.trim() || "";
+      //     const stage = cells[3]?.textContent?.trim() || "";
+      //     const procedure = cells[4]?.textContent?.trim() || "";
+      //     const descProcedure = cells[5]?.textContent?.trim() || "";
+      //     const dateProcedure = cells[6]?.textContent?.trim() || "";
+      //     const pageNumber = parseInt(cells[7]?.textContent?.trim() || "0", 10);
+
+      //     const documentForms = Array.from(
+      //       cells[1]?.querySelectorAll("form") || []
+      //     );
+      //     const documents = documentForms.map((form) => {
+      //       const action = form.getAttribute("action") || "";
+      //       const input = form.querySelector("input");
+      //       const queryName = input?.getAttribute("name") || "";
+      //       const queryValue = input?.getAttribute("value") || "";
+      //       const url = `${action}?${queryName}=${queryValue}`;
+
+      //       return url;
+      //     });
+
+      //     return {
+      //       invoice,
+      //       document: documents,
+      //       stage,
+      //       procedure,
+      //       descProcedure,
+      //       dateProcedure,
+      //       page: isNaN(pageNumber) ? 0 : pageNumber,
+      //     };
+      //   });
+      // });
+
+      return movements;
     } catch (error) {
       console.error("Error extracting movements history:", error);
       throw error;

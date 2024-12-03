@@ -1,3 +1,4 @@
+import { Page } from "puppeteer";
 import { FileSystemService, ScrapService } from "../../plugins";
 import { EventService } from "../../plugins/event-emitir";
 import { wait } from "../../plugins/wait";
@@ -8,6 +9,7 @@ import {
   Litigant,
   Movement,
 } from "../civil-cause.types";
+import { HistoryScrape } from "../helpers/history-scrape";
 import { parseStringToCode } from "../parse-string";
 
 export interface FiltersDaily {
@@ -18,9 +20,15 @@ export interface FiltersDaily {
 
 export type Doc = Documentation & { rol: string };
 
+interface Annex {
+  documents: string[];
+  cause: string;
+}
+
 export class Daily {
   private anchors: Anchor[] = [];
   private civils: CauseCivilPrimitives[] = [];
+  private annex: Annex[] = [];
 
   constructor(
     private readonly scrape: ScrapService,
@@ -52,19 +60,23 @@ export class Daily {
     );
   }
 
-  private async goMyDailyStatus(): Promise<void> {
+  private async goMyDailyStatus(otherPage?: Page): Promise<void> {
     try {
-      await this.scrape.clickElement('a[onclick="miEstadoDiario();"]', 3500);
-      await this.scrape.simuleBodyAction();
+      await this.scrape.clickElement(
+        'a[onclick="miEstadoDiario();"]',
+        3500,
+        otherPage
+      );
+      await this.scrape.simuleBodyAction(otherPage);
       console.log("Navigated to daily status");
     } catch (error) {
       console.error("Error navigating to daily status:", error);
       throw error;
     }
   }
-  private async navToTab(): Promise<void> {
+  private async navToTab(otherPage?: Page): Promise<void> {
     try {
-      await this.scrape.clickElement('a[href="#estDiaCivil"]', 3500);
+      await this.scrape.clickElement('a[href="#estDiaCivil"]', 3500, otherPage);
       console.log("Navigated to tab civil cause");
     } catch (error) {
       console.error("Error navigating to civil causes tab:", error);
@@ -194,7 +206,7 @@ export class Daily {
         console.log("Details: ");
         console.table(causeDetails);
 
-        const movements = await this.extractMovementsHistory();
+        const movements = await this.extractMovementsHistory(causeDetails.rol);
 
         const movementsHistory = movements.map((item) => ({
           ...item,
@@ -306,11 +318,20 @@ export class Daily {
       movementsHistory: cause.movementsHistory.map(
         ({ document, ...history }) => ({
           ...history,
-          document: document.map((_doc, idx) => {
-            return `${parseStringToCode(history.procedure)}_${parseStringToCode(
-              history.descProcedure
-            )}_${this.codeUnique(history.dateProcedure)}_${idx}.pdf`;
-          }),
+          document: document
+            .map((_doc, idx) => {
+              return `${parseStringToCode(
+                history.procedure
+              )}_${parseStringToCode(history.descProcedure)}_${this.codeUnique(
+                history.dateProcedure
+              )}_${idx}.pdf`;
+            })
+            .concat(
+              this.annex
+                .filter((item) => item.cause === cause.rol)
+                .map((item) => item.documents.map((doc) => `${doc}.pdf`))
+                .flat()
+            ),
         })
       ),
     }));
@@ -359,57 +380,78 @@ export class Daily {
     }
   }
 
-  private async extractMovementsHistory(): Promise<Omit<Movement, "book">[]> {
+  private async extractMovementsHistory(
+    cause: string
+  ): Promise<Omit<Movement, "book">[]> {
     try {
       await this.scrape.waitForSelector("div#loadHistCuadernoCiv", 5000);
+      const historyScrape = new HistoryScrape(
+        this.page,
+        this.scrape.getBrowser(),
+        cause,
+        this.storage
+      );
 
-      const movements = await this.page.evaluate(() => {
-        const container = document.querySelector<HTMLDivElement>(
-          "div#loadHistCuadernoCiv"
-        );
-        const table = container?.querySelector("table");
-
-        const rows = Array.from(table?.querySelectorAll("tbody>tr") || []);
-
-        return rows.map((row) => {
-          const cells = Array.from(row.querySelectorAll("td"));
-
-          const invoice = cells[0]?.textContent?.trim() || "";
-          const stage = cells[3]?.textContent?.trim() || "";
-          const procedure = cells[4]?.textContent?.trim() || "";
-          const descProcedure = cells[5]?.textContent?.trim() || "";
-          const dateProcedure = cells[6]?.textContent?.trim() || "";
-          const pageNumber = parseInt(cells[7]?.textContent?.trim() || "0", 10);
-
-          const documentForms = Array.from(
-            cells[1]?.querySelectorAll("form") || []
-          );
-          const documents = documentForms.map((form) => {
-            const action = form.getAttribute("action") || "";
-            const input = form.querySelector("input");
-            const queryName = input?.getAttribute("name") || "";
-            const queryValue = input?.getAttribute("value") || "";
-            const url = `${action}?${queryName}=${queryValue}`;
-
-            return url;
-          });
-
-          return {
-            invoice,
-            document: documents,
-            stage,
-            procedure,
-            descProcedure,
-            dateProcedure,
-            page: isNaN(pageNumber) ? 0 : pageNumber,
-          };
-        });
+      const annexDocs = await historyScrape.start(async (newPage) => {
+        await this.goMyDailyStatus(newPage);
+        await this.navToTab(newPage);
       });
 
-      return movements.map((movement) => ({
-        ...movement,
-        dateProcedure: this.parseDate(movement.dateProcedure),
-      }));
+      this.annex.push({
+        cause,
+        documents: annexDocs,
+      });
+
+      const movements = historyScrape.getmovementsHistories();
+      return movements;
+
+      // const movements = await this.page.evaluate(() => {
+      //   const container = document.querySelector<HTMLDivElement>(
+      //     "div#loadHistCuadernoCiv"
+      //   );
+      //   const table = container?.querySelector("table");
+
+      //   const rows = Array.from(table?.querySelectorAll("tbody>tr") || []);
+
+      //   return rows.map((row) => {
+      //     const cells = Array.from(row.querySelectorAll("td"));
+
+      //     const invoice = cells[0]?.textContent?.trim() || "";
+      //     const stage = cells[3]?.textContent?.trim() || "";
+      //     const procedure = cells[4]?.textContent?.trim() || "";
+      //     const descProcedure = cells[5]?.textContent?.trim() || "";
+      //     const dateProcedure = cells[6]?.textContent?.trim() || "";
+      //     const pageNumber = parseInt(cells[7]?.textContent?.trim() || "0", 10);
+
+      //     const documentForms = Array.from(
+      //       cells[1]?.querySelectorAll("form") || []
+      //     );
+      //     const documents = documentForms.map((form) => {
+      //       const action = form.getAttribute("action") || "";
+      //       const input = form.querySelector("input");
+      //       const queryName = input?.getAttribute("name") || "";
+      //       const queryValue = input?.getAttribute("value") || "";
+      //       const url = `${action}?${queryName}=${queryValue}`;
+
+      //       return url;
+      //     });
+
+      //     return {
+      //       invoice,
+      //       document: documents,
+      //       stage,
+      //       procedure,
+      //       descProcedure,
+      //       dateProcedure,
+      //       page: isNaN(pageNumber) ? 0 : pageNumber,
+      //     };
+      //   });
+      // });
+
+      // return movements.map((movement) => ({
+      //   ...movement,
+      //   dateProcedure: this.parseDate(movement.dateProcedure),
+      // }));
     } catch (error) {
       console.error("Error extracting movements history:", error);
       throw error;

@@ -9,6 +9,10 @@ export class ScrapService extends EventEmitter {
   private browser: Browser | null = null;
   private page: Page | null = null;
 
+  getBrowser(): Browser {
+    return this.browser!;
+  }
+
   async init(url = "https://oficinajudicialvirtual.pjud.cl/home/index.php") {
     this.browser = await puppeteer.launch({
       headless: false,
@@ -31,6 +35,18 @@ export class ScrapService extends EventEmitter {
     console.log(`Init scrap to: <${url}>`);
 
     await this.login();
+  }
+
+  private async invalidLoadImages() {
+    // //? No cargar las imagenes
+    await this.page?.setRequestInterception(true);
+    return this.page?.on("request", async (request) => {
+      if (request.resourceType() == "image") {
+        await request.abort();
+      } else {
+        await request.continue();
+      }
+    });
   }
 
   async pageGoto(url: string) {
@@ -66,8 +82,8 @@ export class ScrapService extends EventEmitter {
     );
   }
 
-  async simuleBodyAction() {
-    return this.page?.evaluate(() => {
+  async simuleBodyAction(otherPage?: Page) {
+    return (otherPage || this.page)?.evaluate(() => {
       document.querySelector("body")?.click();
     });
   }
@@ -98,18 +114,26 @@ export class ScrapService extends EventEmitter {
     await this.timeout(2000);
   }
 
-  async clickElement(selector: string, delay = 1000): Promise<void> {
-    await this.page?.waitForSelector(selector, { timeout: 0 });
-    await this.page?.click(selector);
+  async clickElement(
+    selector: string,
+    delay = 1000,
+    otherPage?: Page
+  ): Promise<void> {
+    await (otherPage || this.page)?.waitForSelector(selector, { timeout: 0 });
+    await (otherPage || this.page)?.click(selector);
     await this.timeout(delay);
   }
 
   async waitForSelector(
     selector: string,
     delay = 1000,
-    visible?: boolean
+    visible?: boolean,
+    otherPage?: Page
   ): Promise<void> {
-    await this.page?.waitForSelector(selector, { timeout: 0, visible });
+    await (otherPage || this.page)?.waitForSelector(selector, {
+      timeout: 0,
+      visible,
+    });
     await this.timeout(delay);
   }
 
