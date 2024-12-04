@@ -61,7 +61,7 @@ export class DocumentAnnexPersistHelper extends EventEmitter {
     const { date, descProcedure, document, procedure, reference } = annex;
     const filename = `${parseStringToCode(procedure)}_${parseStringToCode(
       descProcedure
-    )}_${codeUnique(date)}_${reference}_anexo`;
+    )}_${codeUnique(date)}_${parseStringToCode(reference)}_anexo`;
     return { filename, document };
   }
 
