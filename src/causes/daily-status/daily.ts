@@ -147,6 +147,12 @@ export class Daily {
     }
   > {
     try {
+      this.page.waitForSelector('div[style="background-color:#F9F9F9"]', {
+        timeout: 5 * 60 * 1000, // 5min
+        visible: true,
+      });
+      await wait(4000);
+
       const causeDetails = await this.page.evaluate(() => {
         const getTextContent = (selector: string): string =>
           document.querySelector(selector)?.textContent?.trim() || "";
@@ -193,7 +199,8 @@ export class Daily {
   async collectDetails(): Promise<void> {
     try {
       if (this.anchors.length === 0) {
-        this.dispatch.emit("failedCaptureAnchors", "Error capturing anchors");
+        this.dispatch.emit("failedCaptureAnchors", "Not already anchors");
+        return;
       }
       for (const [index, anchor] of this.anchors.entries()) {
         console.log(`Processing cause ${index + 1}/${this.anchors.length}...`);
@@ -385,17 +392,9 @@ export class Daily {
   ): Promise<Omit<Movement, "book">[]> {
     try {
       await this.scrape.waitForSelector("div#loadHistCuadernoCiv", 5000);
-      const historyScrape = new HistoryScrape(
-        this.page,
-        this.scrape.getBrowser(),
-        cause,
-        this.storage
-      );
+      const historyScrape = new HistoryScrape(this.page, cause, this.storage);
 
-      const annexDocs = await historyScrape.start(async (newPage) => {
-        await this.goMyDailyStatus(newPage);
-        await this.navToTab(newPage);
-      });
+      const annexDocs = await historyScrape.start();
 
       this.annex.push({
         cause,

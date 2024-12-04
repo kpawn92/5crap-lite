@@ -18,7 +18,7 @@ export interface AnexRequest {
   descProcedure: string;
 }
 
-type CallbackExtend = (page: Page) => Promise<void>;
+// type CallbackExtend = (page: Page) => Promise<void>;
 
 export class HistoryScrape {
   private histories: MovementHistory[] = [];
@@ -27,7 +27,7 @@ export class HistoryScrape {
 
   constructor(
     private readonly page: Page,
-    private readonly browser: Browser,
+    // private readonly browser: Browser,
     private readonly cause: string,
     private readonly storage: FileSystemService
   ) {}
@@ -36,7 +36,7 @@ export class HistoryScrape {
     return this.histories;
   }
 
-  async start(cb: CallbackExtend) {
+  async start() {
     const movements = await this.page.evaluate(() => {
       const container = document.querySelector<HTMLDivElement>(
         "div#loadHistCuadernoCiv"
@@ -106,83 +106,113 @@ export class HistoryScrape {
         }))
     );
 
-    if (this.folders.length === 0) return [];
+    if (this.folders.length === 0) {
+      console.log("Not contains folders in", this.cause);
+      return [];
+    }
 
-    const context = await this.folderExtract(cb);
+    await this.folderExtract();
 
     const persist = new DocumentAnnexPersistHelper(
       this.cause,
       this.storage,
-      context,
+      this.page,
       this.anexs
     );
-
-    const docs = await persist.annexsEvaluate();
-    return docs;
+    persist.annexsEvaluate();
+    return persist.makeFilenames();
   }
 
-  private async folderExtract(cb: CallbackExtend) {
-    const currentUrl = this.page.url();
-    const newPage = await this.browser.newPage();
-
-    await newPage.goto(currentUrl, {
-      waitUntil: "domcontentloaded",
-      timeout: 15 * 60 * 1000, // 15min wait
-    });
-
-    await cb(newPage);
-
+  private async folderExtract() {
+    console.log("Folders", this.folders.length);
     for (const folder of this.folders) {
-      this.anexs.push(...(await this.rawDataFolder(newPage, folder)));
+      this.anexs.push(...(await this.rawDataFolder(this.page, folder)));
     }
-
-    return newPage;
   }
+  // private async folderExtract(cb: CallbackExtend) {
+  //   const currentUrl = this.page.url();
+  //   const newPage = await this.browser.newPage();
+
+  //   await newPage.goto(currentUrl, {
+  //     waitUntil: "domcontentloaded",
+  //     timeout: 15 * 60 * 1000, // 15min wait
+  //   });
+
+  //   await cb(newPage);
+
+  //   for (const folder of this.folders) {
+  //     this.anexs.push(...(await this.rawDataFolder(newPage, folder)));
+  //   }
+
+  //   return newPage;
+  // }
 
   private async rawDataFolder(
     page: Page,
     folder: Folder
   ): Promise<AnexRequest[]> {
-    await page.waitForSelector("#modalAnexoSolicitudCivil .modal-body table", {
-      timeout: 0,
-    });
-    await page.evaluate((script) => {
-      eval(script);
-    }, folder.script);
-    await wait(4000);
+    try {
+      console.log(
+        "Init evaluate folder in",
+        folder.procedure,
+        folder.descProcedure
+      );
+      await page.evaluate((script) => {
+        eval(script);
+      }, folder.script);
 
-    const result = await page.$$eval(
-      "#modalAnexoSolicitudCivil .modal-body table tbody tr",
-      (rows) => {
-        return rows.map((row) => {
-          // Obtén todos los celdas (td) de la fila
-          const cells = row.querySelectorAll("td");
-          // Obtén el valor del token del input hidden
-          const form = row.querySelector("form");
-          const action = form?.getAttribute("action") || "";
-          const input = form?.querySelector("input");
-          const queryName = input?.getAttribute("name") || "";
-          const queryValue = input?.getAttribute("value") || "";
-          const url = `${action}?${queryName}=${queryValue}`;
+      await page.waitForSelector('div[class="modal in"]', {
+        timeout: 5 * 60 * 1000,
+        visible: true,
+      });
+      await wait(4000);
 
-          return {
-            document: url,
-            date: dateCalc(cells[1]?.textContent?.trim() || ""),
-            reference: cells[2]?.textContent?.trim() || "",
-          };
-        });
-      }
-    );
+      const result = await page.$$eval(
+        "#modalAnexoSolicitudCivil .modal-body table tbody tr",
+        (rows) => {
+          return rows.map((row) => {
+            // Obtén todos los celdas (td) de la fila
+            const cells = row.querySelectorAll("td");
+            // Obtén el valor del token del input hidden
+            const form = row.querySelector("form");
+            const action = form?.getAttribute("action") || "";
+            const input = form?.querySelector("input");
+            const queryName = input?.getAttribute("name") || "";
+            const queryValue = input?.getAttribute("value") || "";
+            const url = `${action}?${queryName}=${queryValue}`;
 
-    //--> Close modal
-    await page.click('button[data-dismiss="modal"]', { delay: 1000 });
+            return {
+              document: url,
+              date: cells[1]?.textContent?.trim() || "",
+              reference: cells[2]?.textContent?.trim() || "",
+            };
+          });
+        }
+      );
 
-    return result.map((item) => ({
-      date: item.date,
-      descProcedure: folder.descProcedure,
-      document: item.document,
-      procedure: folder.procedure,
-      reference: item.reference,
-    }));
+      console.log(
+        "Finish evaluate folder in",
+        folder.procedure,
+        folder.descProcedure
+      );
+
+      console.table(
+        result.map((item) => ({
+          reference: item.reference,
+          date: item.date,
+        }))
+      );
+
+      return result.map((item) => ({
+        date: dateCalc(item.date),
+        descProcedure: folder.descProcedure,
+        document: item.document,
+        procedure: folder.procedure,
+        reference: item.reference,
+      }));
+    } catch (error) {
+      console.log(error);
+      return [];
+    }
   }
 }

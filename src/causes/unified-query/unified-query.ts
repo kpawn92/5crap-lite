@@ -380,16 +380,9 @@ export class UnifiedQuery {
   ): Promise<Omit<Movement, "book">[]> {
     try {
       await this.scrape.waitForSelector("div#loadHistCuadernoCiv", 5000);
-      const historyScrape = new HistoryScrape(
-        this.page,
-        this.scrape.getBrowser(),
-        cause,
-        this.storage
-      );
+      const historyScrape = new HistoryScrape(this.page, cause, this.storage);
 
-      const annexDocs = await historyScrape.start(async (newPage) => {
-        await this.goUnifiedQuery(newPage);
-      });
+      const annexDocs = await historyScrape.start();
 
       this.annex.push(...annexDocs);
 

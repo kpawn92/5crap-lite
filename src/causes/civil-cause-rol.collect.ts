@@ -349,19 +349,11 @@ export class CivilCauseRolCollectScrape {
 
       const historyScrape = new HistoryScrape(
         this.page,
-        this.scrap.getBrowser(),
         this.causeTemp,
         this.file
       );
 
-      const annexDocs = await historyScrape.start(async (newPage) => {
-        await this.scrap.clickElement(
-          'a[onclick="misCausas();"]',
-          3500,
-          newPage
-        );
-        await this.scrap.clickElement("a#civilTab", 3500, newPage);
-      });
+      const annexDocs = await historyScrape.start();
 
       this.annex.push(...annexDocs);
 
