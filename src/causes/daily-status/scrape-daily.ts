@@ -1,3 +1,4 @@
+import { Browser } from "puppeteer";
 import { FileSystemService, ScrapService } from "../../plugins";
 import { EventService } from "../../plugins/event-emitir";
 import { Daily, Doc, FiltersDaily } from "./daily";
@@ -8,18 +9,14 @@ export const scrapeDaily = async (filters: FiltersDaily) => {
   const event = new EventService();
   const daily = new Daily(scrape, storage, event);
 
-  scrape.on("initScrape", async (url: string) => {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.log("URL for some reason does not work");
-        process.exit();
-      }
-      console.log("URL active running");
-    } catch (error) {
-      console.error(error);
-      process.exit();
-    }
+  scrape.on("retryPage", (msg) => {
+    console.log(msg);
+  });
+
+  scrape.on("closeBrowser", async (msg: string, browser: Browser) => {
+    console.log(msg);
+    await browser.close();
+    process.exit();
   });
 
   event.on("anchorsIsEmpty", (msg) => {

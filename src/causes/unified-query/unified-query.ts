@@ -1,3 +1,4 @@
+import { Page } from "puppeteer";
 import { FileSystemService, ScrapService } from "../../plugins";
 import { wait } from "../../plugins/wait";
 import {
@@ -8,6 +9,7 @@ import {
   Movement,
 } from "../civil-cause.types";
 import { parseStringToCode } from "../parse-string";
+import { HistoryScrape } from "../helpers/history-scrape";
 
 export interface UnifiedFilters {
   court: string | number;
@@ -22,6 +24,7 @@ export class UnifiedQuery {
   private civils: CCivil[] = [];
   private histories: Movement[] = [];
   private litigants: Litigant[] = [];
+  private annex: string[] = [];
   private rit: string | null = null;
   constructor(
     private readonly scrape: ScrapService,
@@ -44,10 +47,14 @@ export class UnifiedQuery {
     return this.scrape.init();
   }
 
-  private async goUnifiedQuery(): Promise<void> {
+  private async goUnifiedQuery(otherPage?: Page): Promise<void> {
     try {
-      await this.scrape.clickElement('a[onclick="consultaUnificada();"]', 3500);
-      await this.scrape.simuleBodyAction();
+      await this.scrape.clickElement(
+        'a[onclick="consultaUnificada();"]',
+        3500,
+        otherPage
+      );
+      await this.scrape.simuleBodyAction(otherPage);
       console.log("Navigated to search by rit");
     } catch (error) {
       console.error("Error navigating to civil causes tab:", error);
@@ -199,7 +206,9 @@ export class UnifiedQuery {
         console.log("Details: ");
         console.table(causeDetails);
 
-        const movementsHistory = await this.extractMovementsHistory();
+        const movementsHistory = await this.extractMovementsHistory(
+          causeDetails.rol
+        );
 
         const movements = movementsHistory.map((item) => ({
           ...item,
@@ -312,11 +321,13 @@ export class UnifiedQuery {
       litigants: this.litigants,
       movementsHistory: this.histories.map((history) => ({
         ...history,
-        document: history.document.map((_doc, index) => {
-          return `${parseStringToCode(history.procedure)}_${parseStringToCode(
-            history.descProcedure
-          )}_${this.codeUnique(history.dateProcedure)}_${index}.pdf`;
-        }),
+        document: history.document
+          .map((_doc, index) => {
+            return `${parseStringToCode(history.procedure)}_${parseStringToCode(
+              history.descProcedure
+            )}_${this.codeUnique(history.dateProcedure)}_${index}.pdf`;
+          })
+          .concat(this.annex.map((item) => `${item}.pdf`)),
       })),
     };
   }
@@ -364,57 +375,66 @@ export class UnifiedQuery {
     }
   }
 
-  private async extractMovementsHistory(): Promise<Omit<Movement, "book">[]> {
+  private async extractMovementsHistory(
+    cause: string
+  ): Promise<Omit<Movement, "book">[]> {
     try {
       await this.scrape.waitForSelector("div#loadHistCuadernoCiv", 5000);
+      const historyScrape = new HistoryScrape(this.page, cause, this.storage);
 
-      const movements = await this.page.evaluate(() => {
-        const container = document.querySelector<HTMLDivElement>(
-          "div#loadHistCuadernoCiv"
-        );
-        const table = container?.querySelector("table");
+      const annexDocs = await historyScrape.start();
 
-        const rows = Array.from(table?.querySelectorAll("tbody>tr") || []);
+      this.annex.push(...annexDocs);
 
-        return rows.map((row) => {
-          const cells = Array.from(row.querySelectorAll("td"));
+      return historyScrape.getmovementsHistories();
 
-          const invoice = cells[0]?.textContent?.trim() || "";
-          const stage = cells[3]?.textContent?.trim() || "";
-          const procedure = cells[4]?.textContent?.trim() || "";
-          const descProcedure = cells[5]?.textContent?.trim() || "";
-          const dateProcedure = cells[6]?.textContent?.trim() || "";
-          const pageNumber = parseInt(cells[7]?.textContent?.trim() || "0", 10);
+      // const movements = await this.page.evaluate(() => {
+      //   const container = document.querySelector<HTMLDivElement>(
+      //     "div#loadHistCuadernoCiv"
+      //   );
+      //   const table = container?.querySelector("table");
 
-          const documentForms = Array.from(
-            cells[1]?.querySelectorAll("form") || []
-          );
-          const documents = documentForms.map((form) => {
-            const action = form.getAttribute("action") || "";
-            const input = form.querySelector("input");
-            const queryName = input?.getAttribute("name") || "";
-            const queryValue = input?.getAttribute("value") || "";
-            const url = `${action}?${queryName}=${queryValue}`;
+      //   const rows = Array.from(table?.querySelectorAll("tbody>tr") || []);
 
-            return url;
-          });
+      //   return rows.map((row) => {
+      //     const cells = Array.from(row.querySelectorAll("td"));
 
-          return {
-            invoice,
-            document: documents,
-            stage,
-            procedure,
-            descProcedure,
-            dateProcedure,
-            page: isNaN(pageNumber) ? 0 : pageNumber,
-          };
-        });
-      });
+      //     const invoice = cells[0]?.textContent?.trim() || "";
+      //     const stage = cells[3]?.textContent?.trim() || "";
+      //     const procedure = cells[4]?.textContent?.trim() || "";
+      //     const descProcedure = cells[5]?.textContent?.trim() || "";
+      //     const dateProcedure = cells[6]?.textContent?.trim() || "";
+      //     const pageNumber = parseInt(cells[7]?.textContent?.trim() || "0", 10);
 
-      return movements.map((movement) => ({
-        ...movement,
-        dateProcedure: this.parseDate(movement.dateProcedure),
-      }));
+      //     const documentForms = Array.from(
+      //       cells[1]?.querySelectorAll("form") || []
+      //     );
+      //     const documents = documentForms.map((form) => {
+      //       const action = form.getAttribute("action") || "";
+      //       const input = form.querySelector("input");
+      //       const queryName = input?.getAttribute("name") || "";
+      //       const queryValue = input?.getAttribute("value") || "";
+      //       const url = `${action}?${queryName}=${queryValue}`;
+
+      //       return url;
+      //     });
+
+      //     return {
+      //       invoice,
+      //       document: documents,
+      //       stage,
+      //       procedure,
+      //       descProcedure,
+      //       dateProcedure,
+      //       page: isNaN(pageNumber) ? 0 : pageNumber,
+      //     };
+      //   });
+      // });
+
+      // return movements.map((movement) => ({
+      //   ...movement,
+      //   dateProcedure: this.parseDate(movement.dateProcedure),
+      // }));
     } catch (error) {
       console.error("Error extracting movements history:", error);
       throw error;

@@ -9,6 +9,10 @@ export class ScrapService extends EventEmitter {
   private browser: Browser | null = null;
   private page: Page | null = null;
 
+  getBrowser(): Browser {
+    return this.browser!;
+  }
+
   async init(url = "https://oficinajudicialvirtual.pjud.cl/home/index.php") {
     this.browser = await puppeteer.launch({
       headless: envs.BROWSER_HEADLESS,
@@ -17,25 +21,69 @@ export class ScrapService extends EventEmitter {
     });
     this.page = await this.browser.newPage();
 
-    this.emit("initScrape", url);
-
     //? Modify navigator.webdriver before load page.
     await this.page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, "webdriver", { get: () => false });
     });
 
-    await this.page.goto(url, {
-      waitUntil: "domcontentloaded",
-      timeout: 0,
-    });
+    // await this.page.goto(url, {
+    //   waitUntil: "domcontentloaded",
+    //   timeout: 0,
+    // });
+    await this.pageGoto(url);
 
     console.log(`Init scrap to: <${url}>`);
 
     await this.login();
   }
 
-  async simuleBodyAction() {
-    return this.page?.evaluate(() => {
+  private async invalidLoadImages() {
+    // //? No cargar las imagenes
+    await this.page?.setRequestInterception(true);
+    return this.page?.on("request", async (request) => {
+      if (request.resourceType() == "image") {
+        await request.abort();
+      } else {
+        await request.continue();
+      }
+    });
+  }
+
+  async pageGoto(url: string) {
+    const maxRetries = 3;
+    const delay = 600000;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Intento ${attempt} load page...`);
+        const response = await this.page!.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: 5 * 60 * 1000, // 5min wait
+        });
+
+        if (response?.ok()) {
+          console.log("Pagina cargada correctamente: ", response?.status());
+          return;
+        } else {
+          console.log("Error al cargar la pagina: ", response?.status());
+        }
+      } catch (error) {
+        console.log("Error durante la carga de la pagina: ", error);
+      }
+
+      if (attempt < maxRetries) {
+        this.emit("retryPage", "Esperando 10min antes del proximo intento...");
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+    this.emit(
+      "closeBrowser",
+      "Se alcanzo el numero maximo de intentos...",
+      this.browser
+    );
+  }
+
+  async simuleBodyAction(otherPage?: Page) {
+    return (otherPage || this.page)?.evaluate(() => {
       document.querySelector("body")?.click();
     });
   }
@@ -66,18 +114,26 @@ export class ScrapService extends EventEmitter {
     await this.timeout(2000);
   }
 
-  async clickElement(selector: string, delay = 1000): Promise<void> {
-    await this.page?.waitForSelector(selector, { timeout: 0 });
-    await this.page?.click(selector);
+  async clickElement(
+    selector: string,
+    delay = 1000,
+    otherPage?: Page
+  ): Promise<void> {
+    await (otherPage || this.page)?.waitForSelector(selector, { timeout: 0 });
+    await (otherPage || this.page)?.click(selector);
     await this.timeout(delay);
   }
 
   async waitForSelector(
     selector: string,
     delay = 1000,
-    visible?: boolean
+    visible?: boolean,
+    otherPage?: Page
   ): Promise<void> {
-    await this.page?.waitForSelector(selector, { timeout: 0, visible });
+    await (otherPage || this.page)?.waitForSelector(selector, {
+      timeout: 0,
+      visible,
+    });
     await this.timeout(delay);
   }
 
