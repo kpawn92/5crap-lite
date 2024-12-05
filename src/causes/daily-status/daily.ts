@@ -154,8 +154,10 @@ export class Daily {
       await wait(4000);
 
       const causeDetails = await this.page.evaluate(() => {
-        const getTextContent = (selector: string): string =>
-          document.querySelector(selector)?.textContent?.trim() || "";
+        const getBook = (): string =>
+          Array.from(
+            document.querySelectorAll("select#selCuaderno>option") || []
+          )[0]?.textContent?.trim() || "";
 
         const cells = Array.from(
           document.querySelectorAll(
@@ -173,7 +175,7 @@ export class Daily {
           processState: cells[6]?.replace("Estado Proc.:", "").trim() || "",
           stage: cells[7]?.replace("Etapa:", "").trim() || "",
           court: cells[8]?.replace("Tribunal:", "").trim() || "",
-          book: getTextContent("select#selCuaderno>option[selected]"),
+          book: getBook(),
         };
       });
 
