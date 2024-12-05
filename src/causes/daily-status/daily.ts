@@ -147,7 +147,7 @@ export class Daily {
     }
   > {
     try {
-      this.page.waitForSelector('div[style="background-color:#F9F9F9"]', {
+      await this.page.waitForSelector('div[style="background-color:#F9F9F9"]', {
         timeout: 5 * 60 * 1000, // 5min
         visible: true,
       });
