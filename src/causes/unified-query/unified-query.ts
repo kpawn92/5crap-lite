@@ -10,6 +10,7 @@ import {
 } from "../civil-cause.types";
 import { parseStringToCode } from "../parse-string";
 import { HistoryScrape } from "../helpers/history-scrape";
+import { ccaseDocumentUpdater } from "../../db/ccause-updater";
 
 export interface UnifiedFilters {
   court: string | number;
@@ -382,59 +383,11 @@ export class UnifiedQuery {
       await this.scrape.waitForSelector("div#loadHistCuadernoCiv", 5000);
       const historyScrape = new HistoryScrape(this.page, cause, this.storage);
 
-      const annexDocs = await historyScrape.start();
+      const annexDocs = await historyScrape.start(ccaseDocumentUpdater);
 
       this.annex.push(...annexDocs);
 
       return historyScrape.getmovementsHistories();
-
-      // const movements = await this.page.evaluate(() => {
-      //   const container = document.querySelector<HTMLDivElement>(
-      //     "div#loadHistCuadernoCiv"
-      //   );
-      //   const table = container?.querySelector("table");
-
-      //   const rows = Array.from(table?.querySelectorAll("tbody>tr") || []);
-
-      //   return rows.map((row) => {
-      //     const cells = Array.from(row.querySelectorAll("td"));
-
-      //     const invoice = cells[0]?.textContent?.trim() || "";
-      //     const stage = cells[3]?.textContent?.trim() || "";
-      //     const procedure = cells[4]?.textContent?.trim() || "";
-      //     const descProcedure = cells[5]?.textContent?.trim() || "";
-      //     const dateProcedure = cells[6]?.textContent?.trim() || "";
-      //     const pageNumber = parseInt(cells[7]?.textContent?.trim() || "0", 10);
-
-      //     const documentForms = Array.from(
-      //       cells[1]?.querySelectorAll("form") || []
-      //     );
-      //     const documents = documentForms.map((form) => {
-      //       const action = form.getAttribute("action") || "";
-      //       const input = form.querySelector("input");
-      //       const queryName = input?.getAttribute("name") || "";
-      //       const queryValue = input?.getAttribute("value") || "";
-      //       const url = `${action}?${queryName}=${queryValue}`;
-
-      //       return url;
-      //     });
-
-      //     return {
-      //       invoice,
-      //       document: documents,
-      //       stage,
-      //       procedure,
-      //       descProcedure,
-      //       dateProcedure,
-      //       page: isNaN(pageNumber) ? 0 : pageNumber,
-      //     };
-      //   });
-      // });
-
-      // return movements.map((movement) => ({
-      //   ...movement,
-      //   dateProcedure: this.parseDate(movement.dateProcedure),
-      // }));
     } catch (error) {
       console.error("Error extracting movements history:", error);
       throw error;

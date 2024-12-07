@@ -4,27 +4,21 @@ import { FileSystemService } from "../../plugins/file.plugin";
 import { parseStringToCode } from "../parse-string";
 import { codeUnique } from "./code-calc";
 import { AnexRequest } from "./history-scrape";
+import { UpdaterHelper } from "./document-all.helper";
 
-export class DocumentAnnexPersistHelper extends EventEmitter {
+export class DocumentAnnexPersistHelper {
   constructor(
+    private readonly updater: UpdaterHelper,
     private readonly cause: string,
     private readonly storage: FileSystemService,
     private readonly page: Page,
     private readonly annexs: AnexRequest[]
-  ) {
-    super();
-    this.on("start-down", (msg: string) => {
-      console.log(msg);
-    });
-    this.on("finish-down", (msg: string) => {
-      console.log(msg);
-    });
-    this.on("res-down", (msg: string, code: number, filename: string) => {
-      console.log(msg);
-      console.log("Code: ", code);
-      console.log(filename);
-    });
-    this.annexsEvaluate();
+  ) {}
+
+  private async evalResponse(code: number, rol: string, filename: string) {
+    console.log("Response code: ", code);
+    await this.updater(rol, filename);
+    console.log("Database updated");
   }
 
   makeFilenames() {
@@ -38,19 +32,21 @@ export class DocumentAnnexPersistHelper extends EventEmitter {
   }
 
   async annexsEvaluate() {
-    this.emit(
-      "start-down",
+    console.log(
       `Starting document download for ${this.annexs.length} documents...`
     );
     await Promise.allSettled(this.annexs.map((doc) => this.docManager(doc)));
-    this.emit("finish-down", "All documents downloaded.");
+    console.log("All documents downloaded.");
   }
 
   private async docManager(annex: AnexRequest) {
     const { document, filename } = this.evaluateAnnex(annex);
     const response = await this.fetchDocument(document);
 
-    this.emit("res-down", "Request response", response.code, filename);
+    console.log("Request response", response.code, filename);
+
+    response.code !== 200 &&
+      this.evalResponse(response.code, this.cause, filename);
 
     if (response.code === 200) {
       this.storage.writeDocumentByCause(response.buffer, this.cause, filename);
