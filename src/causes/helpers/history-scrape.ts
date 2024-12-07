@@ -4,6 +4,7 @@ import { dateCalc } from "./date-calc";
 import { wait } from "../../plugins/wait";
 import { DocumentAnnexPersistHelper } from "./document-persist.helper";
 import { FileSystemService } from "../../plugins";
+import { UpdaterHelper } from "./document-all.helper";
 
 type MovementHistory = Omit<Movement, "book">;
 type Folder = Pick<Movement, "procedure" | "descProcedure"> & {
@@ -36,7 +37,7 @@ export class HistoryScrape {
     return this.histories;
   }
 
-  async start() {
+  async start(updater: UpdaterHelper) {
     const movements = await this.page.evaluate(() => {
       const container = document.querySelector<HTMLDivElement>(
         "div#loadHistCuadernoCiv"
@@ -114,12 +115,13 @@ export class HistoryScrape {
     await this.folderExtract();
 
     const persist = new DocumentAnnexPersistHelper(
+      updater,
       this.cause,
       this.storage,
       this.page,
       this.anexs
     );
-    persist.annexsEvaluate();
+    await persist.annexsEvaluate();
     return persist.makeFilenames();
   }
 
@@ -129,23 +131,6 @@ export class HistoryScrape {
       this.anexs.push(...(await this.rawDataFolder(this.page, folder)));
     }
   }
-  // private async folderExtract(cb: CallbackExtend) {
-  //   const currentUrl = this.page.url();
-  //   const newPage = await this.browser.newPage();
-
-  //   await newPage.goto(currentUrl, {
-  //     waitUntil: "domcontentloaded",
-  //     timeout: 15 * 60 * 1000, // 15min wait
-  //   });
-
-  //   await cb(newPage);
-
-  //   for (const folder of this.folders) {
-  //     this.anexs.push(...(await this.rawDataFolder(newPage, folder)));
-  //   }
-
-  //   return newPage;
-  // }
 
   private async rawDataFolder(
     page: Page,

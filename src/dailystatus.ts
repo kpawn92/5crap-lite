@@ -8,13 +8,16 @@ export const run = async () => {
     dbName: envs.MONGO_DB_NAME,
   });
 
-  const rawData = await scrapeDaily({ day: 23, month: 10, year: 2024 });
-
-  await Promise.all(
-    rawData.map((cause) =>
-      CauseCivilUpdater.replaceOne({ rol: cause.rol }, cause, { upsert: true })
-    )
-  );
+  await scrapeDaily({ day: 23, month: 10, year: 2024 }, async (rawData) => {
+    await Promise.all(
+      rawData.map((cause) =>
+        CauseCivilUpdater.replaceOne({ rol: cause.rol }, cause, {
+          upsert: true,
+        })
+      )
+    );
+    console.log("Civils cases saved successfully");
+  });
 
   console.log("Proccess daily query finally...");
   process.exit();

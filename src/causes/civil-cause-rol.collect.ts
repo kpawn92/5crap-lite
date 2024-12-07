@@ -1,4 +1,5 @@
 import { CauseCivil } from "../db";
+import { ccaseDocumentUpdater } from "../db/ccause-updater";
 import { FileSystemService, ScrapService } from "../plugins";
 import { CivilCauseDetail } from "./civil-cause.detail";
 import {
@@ -353,7 +354,7 @@ export class CivilCauseRolCollectScrape {
         this.file
       );
 
-      const annexDocs = await historyScrape.start();
+      const annexDocs = await historyScrape.start(ccaseDocumentUpdater);
 
       this.annex.push(...annexDocs);
 

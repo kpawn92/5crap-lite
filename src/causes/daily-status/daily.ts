@@ -1,6 +1,6 @@
-import { Page } from "puppeteer";
+import EventEmitter from "node:events";
+import { dailyDocumentUpdater } from "../../db/daily-updater";
 import { FileSystemService, ScrapService } from "../../plugins";
-import { EventService } from "../../plugins/event-emitir";
 import { wait } from "../../plugins/wait";
 import {
   Anchor,
@@ -9,6 +9,9 @@ import {
   Litigant,
   Movement,
 } from "../civil-cause.types";
+import { codeUnique } from "../helpers/code-calc";
+import { dateCalc } from "../helpers/date-calc";
+import { DocumentAllHelper } from "../helpers/document-all.helper";
 import { HistoryScrape } from "../helpers/history-scrape";
 import { parseStringToCode } from "../parse-string";
 
@@ -25,16 +28,21 @@ interface Annex {
   cause: string;
 }
 
-export class Daily {
+export class Daily extends EventEmitter {
   private anchors: Anchor[] = [];
   private civils: CauseCivilPrimitives[] = [];
   private annex: Annex[] = [];
 
   constructor(
     private readonly scrape: ScrapService,
-    private readonly storage: FileSystemService,
-    private readonly dispatch: EventService
-  ) {}
+    private readonly storage: FileSystemService
+  ) {
+    super();
+    this.on("dailyAnchorsEmpty", (msg) => {
+      console.log(msg);
+      process.exit();
+    });
+  }
 
   async rawData(filters: FiltersDaily) {
     await this.goMyDailyStatus();
@@ -44,39 +52,19 @@ export class Daily {
     await this.collectDetails();
   }
 
-  async retryProccess(doc: Doc) {
-    this.anchors = [];
-    this.civils = [];
-    await this.extractAnchors();
-    await this.collectDetails();
-    const documents = this.getURLs();
-    await this.collectDocuments(
-      documents.find(
-        (item) =>
-          item.rol === doc.rol &&
-          item.procedure === doc.procedure &&
-          item.index === doc.index
-      )
-    );
-  }
-
-  private async goMyDailyStatus(otherPage?: Page): Promise<void> {
+  private async goMyDailyStatus(): Promise<void> {
     try {
-      await this.scrape.clickElement(
-        'a[onclick="miEstadoDiario();"]',
-        3500,
-        otherPage
-      );
-      await this.scrape.simuleBodyAction(otherPage);
+      await this.scrape.clickElement('a[onclick="miEstadoDiario();"]', 3500);
+      await this.scrape.simuleBodyAction();
       console.log("Navigated to daily status");
     } catch (error) {
       console.error("Error navigating to daily status:", error);
       throw error;
     }
   }
-  private async navToTab(otherPage?: Page): Promise<void> {
+  private async navToTab(): Promise<void> {
     try {
-      await this.scrape.clickElement('a[href="#estDiaCivil"]', 3500, otherPage);
+      await this.scrape.clickElement('a[href="#estDiaCivil"]', 3500);
       console.log("Navigated to tab civil cause");
     } catch (error) {
       console.error("Error navigating to civil causes tab:", error);
@@ -106,7 +94,6 @@ export class Daily {
       throw error;
     }
   }
-
   private async extractAnchors() {
     await this.scrape.waitForSelector("table#dtaTableDetalleEstDiaCivil", 1500);
     const contentEmpty = "Ningún dato disponible";
@@ -116,7 +103,7 @@ export class Daily {
     }, contentEmpty);
 
     if (empty) {
-      this.dispatch.emit("anchorsIsEmpty", "No results found...!!!");
+      this.emit("dailyAnchorsEmpty", "No results found...!!!");
     }
 
     const anchorsOnPage = await this.page.evaluate(() => {
@@ -140,7 +127,6 @@ export class Daily {
       `Collected ${formattedAnchors.length} anchors on current page.`
     );
   }
-
   private async extractCauseDetails(): Promise<
     Omit<CauseCivilPrimitives, "movementsHistory" | "litigants"> & {
       book: string;
@@ -181,29 +167,15 @@ export class Daily {
 
       return {
         ...causeDetails,
-        admission: this.parseDate(causeDetails.admission),
+        admission: dateCalc(causeDetails.admission),
       };
     } catch (error) {
       console.error("Error extracting cause details:", error);
       throw error;
     }
   }
-
-  private parseDate(dateString: string): Date {
-    const [day, month, year] = dateString
-      .split(" ")[0]
-      .split("/")
-      .map((item) => Number(item));
-
-    return new Date(year, month - 1, day);
-  }
-
   async collectDetails(): Promise<void> {
     try {
-      if (this.anchors.length === 0) {
-        this.dispatch.emit("failedCaptureAnchors", "Not already anchors");
-        return;
-      }
       for (const [index, anchor] of this.anchors.entries()) {
         console.log(`Processing cause ${index + 1}/${this.anchors.length}...`);
         await this.scrape.execute(anchor.script);
@@ -221,7 +193,11 @@ export class Daily {
           ...item,
           book,
         }));
-        console.log(movementsHistory);
+        console.table(
+          movementsHistory.map(({ document, ...histories }) => ({
+            ...histories,
+          }))
+        );
         const litigants = await this.extractLitigants();
         console.log("Litigants: ");
         console.table(litigants);
@@ -232,8 +208,6 @@ export class Daily {
           litigants,
         });
 
-        console.log(movementsHistory.length);
-
         await this.closeModal();
         await wait(2000);
       }
@@ -242,17 +216,28 @@ export class Daily {
       throw error;
     }
   }
-
-  async collectDocuments(doc?: Doc) {
-    const urls = doc ? [doc] : this.getURLs();
-    return this.downloadPDF(urls);
+  async collectDocuments() {
+    const docAll = new DocumentAllHelper(
+      dailyDocumentUpdater,
+      this.page,
+      this.storage,
+      this.getURLs().map((item) => this.evaluateDocument(item))
+    );
+    await docAll.documentationEvaluate();
   }
 
-  private async downloadPDF(urls: Doc[]) {
-    console.log(`Starting document download for ${urls.length} documents...`);
-    await Promise.allSettled(urls.map((doc) => this.extractDocument(doc)));
-    console.log("All documents downloaded.");
-  }
+  private evaluateDocument = (doc: Doc) => {
+    const { url, dateProcedure, descProcedure, index, procedure, rol } = doc;
+    const filename = `${parseStringToCode(procedure)}_${parseStringToCode(
+      descProcedure
+    )}_${codeUnique(dateProcedure)}_${index}`;
+
+    return {
+      url,
+      cause: rol,
+      filename,
+    };
+  };
 
   private getURLs(): Doc[] {
     const documents: Doc[] = [];
@@ -275,53 +260,7 @@ export class Daily {
     return documents;
   }
 
-  private async extractDocument(doc: Doc) {
-    const { url, dateProcedure, descProcedure, index, procedure } = doc;
-    const filename = `${parseStringToCode(procedure)}_${parseStringToCode(
-      descProcedure
-    )}_${this.codeUnique(dateProcedure)}_${index}`;
-
-    console.log(`Init extract document: ${filename}.pdf`);
-    const pdfArray = await this.extractPDF(url);
-
-    if (!pdfArray) {
-      this.dispatch.emit("failedToReceivePDF", doc);
-      return;
-    }
-
-    this.storage.writeDocumentByCause(pdfArray, doc.rol, filename);
-    console.log("Document collect: ", filename);
-  }
-
-  private async extractPDF(pdfUrl: string) {
-    const pdfBuffer = await this.page.evaluate(async (url) => {
-      try {
-        const response = await fetch(url, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          console.log("Fetch failed with status:", response.status);
-          return null;
-        }
-
-        const buffer = await response.arrayBuffer();
-        return Array.from(new Uint8Array(buffer));
-      } catch (error) {
-        console.log("Error fetching PDF:", error);
-        return null;
-      }
-    }, pdfUrl);
-
-    if (!pdfBuffer) {
-      console.log("No PDF buffer received");
-    }
-
-    return pdfBuffer;
-  }
-
-  public getccivils(): CauseCivilPrimitives[] {
+  public get ccivils(): CauseCivilPrimitives[] {
     return this.civils.map((cause) => ({
       ...cause,
       movementsHistory: cause.movementsHistory.map(
@@ -331,7 +270,7 @@ export class Daily {
             .map((_doc, idx) => {
               return `${parseStringToCode(
                 history.procedure
-              )}_${parseStringToCode(history.descProcedure)}_${this.codeUnique(
+              )}_${parseStringToCode(history.descProcedure)}_${codeUnique(
                 history.dateProcedure
               )}_${idx}.pdf`;
             })
@@ -345,21 +284,6 @@ export class Daily {
       ),
     }));
   }
-
-  private codeUnique(date: Date): string {
-    // Obtener la fecha actual
-    const year = date.getFullYear().toString().slice(-2); // Últimos dos dígitos del año
-    const month = (date.getMonth() + 1).toString().padStart(2, "0"); // Mes con dos dígitos
-    const day = date.getDate().toString().padStart(2, "0"); // Día con dos dígitos
-
-    // Generar un número aleatorio de 4 dígitos
-    // const randomPart = Math.floor(1000 + Math.random() * 9000).toString();
-
-    const code = `${year}${month}${day}`;
-
-    return code;
-  }
-
   private async extractLitigants(): Promise<Litigant[]> {
     try {
       await this.page.click('a[href="#litigantesCiv"]');
@@ -396,7 +320,7 @@ export class Daily {
       await this.scrape.waitForSelector("div#loadHistCuadernoCiv", 5000);
       const historyScrape = new HistoryScrape(this.page, cause, this.storage);
 
-      const annexDocs = await historyScrape.start();
+      const annexDocs = await historyScrape.start(dailyDocumentUpdater);
 
       this.annex.push({
         cause,
@@ -405,54 +329,6 @@ export class Daily {
 
       const movements = historyScrape.getmovementsHistories();
       return movements;
-
-      // const movements = await this.page.evaluate(() => {
-      //   const container = document.querySelector<HTMLDivElement>(
-      //     "div#loadHistCuadernoCiv"
-      //   );
-      //   const table = container?.querySelector("table");
-
-      //   const rows = Array.from(table?.querySelectorAll("tbody>tr") || []);
-
-      //   return rows.map((row) => {
-      //     const cells = Array.from(row.querySelectorAll("td"));
-
-      //     const invoice = cells[0]?.textContent?.trim() || "";
-      //     const stage = cells[3]?.textContent?.trim() || "";
-      //     const procedure = cells[4]?.textContent?.trim() || "";
-      //     const descProcedure = cells[5]?.textContent?.trim() || "";
-      //     const dateProcedure = cells[6]?.textContent?.trim() || "";
-      //     const pageNumber = parseInt(cells[7]?.textContent?.trim() || "0", 10);
-
-      //     const documentForms = Array.from(
-      //       cells[1]?.querySelectorAll("form") || []
-      //     );
-      //     const documents = documentForms.map((form) => {
-      //       const action = form.getAttribute("action") || "";
-      //       const input = form.querySelector("input");
-      //       const queryName = input?.getAttribute("name") || "";
-      //       const queryValue = input?.getAttribute("value") || "";
-      //       const url = `${action}?${queryName}=${queryValue}`;
-
-      //       return url;
-      //     });
-
-      //     return {
-      //       invoice,
-      //       document: documents,
-      //       stage,
-      //       procedure,
-      //       descProcedure,
-      //       dateProcedure,
-      //       page: isNaN(pageNumber) ? 0 : pageNumber,
-      //     };
-      //   });
-      // });
-
-      // return movements.map((movement) => ({
-      //   ...movement,
-      //   dateProcedure: this.parseDate(movement.dateProcedure),
-      // }));
     } catch (error) {
       console.error("Error extracting movements history:", error);
       throw error;
