@@ -4,13 +4,15 @@
   "description": "Scraping causes",
   "main": "main.js",
   "scripts": {
+    "dev:w": "ts-node-dev --respawn --transpile-only --env-file=.env src/workers/main.ts",
     "dev:daily": "ts-node-dev --respawn --transpile-only --env-file=.env src/dailystatus.ts",
     "dev": "ts-node-dev --respawn --transpile-only --env-file=.env src/unified.ts",
     "dev:one": "ts-node-dev --respawn --transpile-only --env-file=.env src/scrap-civil-one.ts",
     "dev:all": "ts-node-dev --respawn --transpile-only --env-file=.env src/scrap-civil-all.ts",
     "start:one": "pnpm r:env && node dist/scrap-civil-one.js",
     "start:all": "pnpm r:env && node dist/scrap-civil-all.js",
-    "r:env": "cross-env NODE_ENV=production RUT=RUT PASS=PASS MONGO_URI=MONGO_URI MONGO_DB_NAME=MONGO_DB_NAME MONGO_USER=MONGO_USER MONGO_PASS=MONGO_PASS",
+    "start:d": "pnpm r:env && node dist/dailystatus.js",
+    "r:env": "cross-env NODE_ENV=production RUT=9128164-3 PASS=Bulnes107* MONGO_URI=mongodb://alejo:12345@localhost:27019/ MONGO_DB_NAME=cuases_civil MONGO_USER=alejo MONGO_PASS=12345 PAGE=https://oficinajudicialvirtual.pjud.cl/home/index.php",
     "build": "tsc"
   },
   "keywords": [],

@@ -218,10 +218,8 @@ export class Daily extends EventEmitter {
   }
   async collectDocuments() {
     const docAll = new DocumentAllHelper(
-      dailyDocumentUpdater,
-      this.page,
-      this.storage,
-      this.getURLs().map((item) => this.evaluateDocument(item))
+      this.URLs.map((item) => this.evaluateDocument(item)),
+      "daily"
     );
     await docAll.documentationEvaluate();
   }
@@ -239,7 +237,7 @@ export class Daily extends EventEmitter {
     };
   };
 
-  private getURLs(): Doc[] {
+  private get URLs(): Doc[] {
     const documents: Doc[] = [];
 
     this.civils.forEach((cause) => {
@@ -318,9 +316,9 @@ export class Daily extends EventEmitter {
   ): Promise<Omit<Movement, "book">[]> {
     try {
       await this.scrape.waitForSelector("div#loadHistCuadernoCiv", 5000);
-      const historyScrape = new HistoryScrape(this.page, cause, this.storage);
+      const historyScrape = new HistoryScrape(this.page, cause, "daily");
 
-      const annexDocs = await historyScrape.start(dailyDocumentUpdater);
+      const annexDocs = await historyScrape.start();
 
       this.annex.push({
         cause,

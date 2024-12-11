@@ -1,10 +1,9 @@
-import { Browser, Page } from "puppeteer";
+import { Page } from "puppeteer";
+import { wait } from "../../plugins/wait";
 import { Movement } from "../civil-cause.types";
 import { dateCalc } from "./date-calc";
-import { wait } from "../../plugins/wait";
 import { DocumentAnnexPersistHelper } from "./document-persist.helper";
-import { FileSystemService } from "../../plugins";
-import { UpdaterHelper } from "./document-all.helper";
+import { IssueOptions } from "../workers/worker.types";
 
 type MovementHistory = Omit<Movement, "book">;
 type Folder = Pick<Movement, "procedure" | "descProcedure"> & {
@@ -19,8 +18,6 @@ export interface AnexRequest {
   descProcedure: string;
 }
 
-// type CallbackExtend = (page: Page) => Promise<void>;
-
 export class HistoryScrape {
   private histories: MovementHistory[] = [];
   private folders: Folder[] = [];
@@ -28,16 +25,15 @@ export class HistoryScrape {
 
   constructor(
     private readonly page: Page,
-    // private readonly browser: Browser,
     private readonly cause: string,
-    private readonly storage: FileSystemService
+    private readonly issue: IssueOptions
   ) {}
 
   getmovementsHistories() {
     return this.histories;
   }
 
-  async start(updater: UpdaterHelper) {
+  async start() {
     const movements = await this.page.evaluate(() => {
       const container = document.querySelector<HTMLDivElement>(
         "div#loadHistCuadernoCiv"
@@ -115,13 +111,12 @@ export class HistoryScrape {
     await this.folderExtract();
 
     const persist = new DocumentAnnexPersistHelper(
-      updater,
       this.cause,
-      this.storage,
-      this.page,
-      this.anexs
+      this.anexs,
+      this.issue
     );
-    await persist.annexsEvaluate();
+
+    persist.annexsEvaluate();
     return persist.makeFilenames();
   }
 
