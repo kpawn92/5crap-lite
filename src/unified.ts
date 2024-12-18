@@ -21,7 +21,7 @@ async function run() {
   console.log("Civil cause remplaced...");
 
   console.log("Proccess finally");
-  process.exit();
+  // process.exit();
 }
 
 run();

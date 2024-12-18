@@ -1,4 +1,5 @@
 import { Page } from "puppeteer";
+import { CauseCivilDocument } from "../../db";
 import { FileSystemService, ScrapService } from "../../plugins";
 import { wait } from "../../plugins/wait";
 import {
@@ -8,9 +9,13 @@ import {
   Litigant,
   Movement,
 } from "../civil-cause.types";
-import { parseStringToCode } from "../parse-string";
+import { codeUnique } from "../helpers/code-calc";
 import { HistoryScrape } from "../helpers/history-scrape";
-import { ccaseDocumentUpdater } from "../../db/ccause-updater";
+import { parseStringToCode } from "../parse-string";
+import { AnnexReturn } from "../helpers/document-persist.helper";
+import { DocumentAllHelper } from "../helpers/document-all.helper";
+import { Doc } from "../daily-status/daily";
+import { dateCalc } from "../helpers/date-calc";
 
 export interface UnifiedFilters {
   court: string | number;
@@ -25,7 +30,7 @@ export class UnifiedQuery {
   private civils: CCivil[] = [];
   private histories: Movement[] = [];
   private litigants: Litigant[] = [];
-  private annex: string[] = [];
+  private annex: AnnexReturn[] = [];
   private rit: string | null = null;
   constructor(
     private readonly scrape: ScrapService,
@@ -173,21 +178,12 @@ export class UnifiedQuery {
 
       return {
         ...causeDetails,
-        admission: this.parseDate(causeDetails.admission),
+        admission: dateCalc(causeDetails.admission),
       };
     } catch (error) {
       console.error("Error extracting cause details:", error);
       throw error;
     }
-  }
-
-  private parseDate(dateString: string): Date {
-    const [day, month, year] = dateString
-      .split(" ")[0]
-      .split("/")
-      .map((item) => Number(item));
-
-    return new Date(year, month - 1, day);
   }
 
   async collectDetails(): Promise<void> {
@@ -236,18 +232,26 @@ export class UnifiedQuery {
   }
 
   async collectDocuments() {
-    const urls = this.getURLs();
-    return this.downloadPDF(urls);
+    const docAll = new DocumentAllHelper(
+      this.URLs.map((item) => this.evaluateDocument(item)),
+      "daily"
+    );
+    await docAll.documentationEvaluate();
   }
+  private evaluateDocument = (doc: Doc) => {
+    const { url, dateProcedure, descProcedure, index, procedure, rol } = doc;
+    const filename = `${parseStringToCode(procedure)}_${parseStringToCode(
+      descProcedure
+    )}_${codeUnique(dateProcedure)}_${index}`;
 
-  private async downloadPDF(urls: Documentation[]) {
-    console.log(`Starting document download for ${urls.length} documents...`);
-    await Promise.allSettled(urls.map((doc) => this.extractDocument(doc)));
-    console.log("All documents downloaded.");
-  }
-
-  private getURLs(): Documentation[] {
-    const documents: Documentation[] = [];
+    return {
+      url,
+      cause: rol,
+      filename,
+    };
+  };
+  private get URLs(): Doc[] {
+    const documents: Doc[] = [];
 
     this.histories.forEach((movement) => {
       movement.document.forEach((url, index) => {
@@ -257,94 +261,36 @@ export class UnifiedQuery {
           dateProcedure: movement.dateProcedure,
           descProcedure: movement.descProcedure,
           procedure: movement.procedure,
+          rol: this.civils[0].rol,
         });
       });
     });
 
     return documents;
   }
-
-  private async extractDocument(doc: Documentation) {
-    const { url, dateProcedure, descProcedure, index, procedure } = doc;
-    const filename = `${parseStringToCode(procedure)}_${parseStringToCode(
-      descProcedure
-    )}_${this.codeUnique(dateProcedure)}_${index}`;
-
-    console.log(`Init extract document: ${filename}.pdf`);
-    const pdfArray = await this.extractPDF(url);
-
-    if (!pdfArray) {
-      // this.failedDocs.push(doc);
-      return;
-    }
-
-    this.storage.writeDocumentByCause(
-      pdfArray,
-      this.rit || "not-rit",
-      filename
-    );
-    console.log("Document collect: ", filename);
-  }
-
-  private async extractPDF(pdfUrl: string) {
-    const pdfBuffer = await this.page.evaluate(async (url) => {
-      try {
-        const response = await fetch(url, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          console.log("Fetch failed with status:", response.status);
-          return null;
-        }
-
-        const buffer = await response.arrayBuffer();
-        return Array.from(new Uint8Array(buffer));
-      } catch (error) {
-        console.log("Error fetching PDF:", error);
-        return null;
-      }
-    }, pdfUrl);
-
-    if (!pdfBuffer) {
-      console.log("No PDF buffer received");
-    }
-
-    return pdfBuffer;
-  }
-
-  public getccivil(): CauseCivilPrimitives {
+  public getccivil(): CauseCivilDocument {
     const civilcause = this.civils[0];
 
     return {
       ...civilcause,
       litigants: this.litigants,
-      movementsHistory: this.histories.map((history) => ({
-        ...history,
-        document: history.document
-          .map((_doc, index) => {
-            return `${parseStringToCode(history.procedure)}_${parseStringToCode(
-              history.descProcedure
-            )}_${this.codeUnique(history.dateProcedure)}_${index}.pdf`;
-          })
-          .concat(this.annex.map((item) => `${item}.pdf`)),
-      })),
+      movementsHistory: this.histories.map(
+        ({ guid, document, ...history }) => ({
+          ...history,
+          document: document.map((_doc, index) => {
+            return {
+              file: `${parseStringToCode(
+                history.procedure
+              )}_${parseStringToCode(history.descProcedure)}_${codeUnique(
+                history.dateProcedure
+              )}_${index}.pdf`,
+              name: `${history.procedure} ${history.descProcedure}`,
+              annexs: this.annex.filter((item) => item.guid === guid),
+            };
+          }),
+        })
+      ),
     };
-  }
-
-  private codeUnique(date: Date): string {
-    // Obtener la fecha actual
-    const year = date.getFullYear().toString().slice(-2); // Últimos dos dígitos del año
-    const month = (date.getMonth() + 1).toString().padStart(2, "0"); // Mes con dos dígitos
-    const day = date.getDate().toString().padStart(2, "0"); // Día con dos dígitos
-
-    // Generar un número aleatorio de 4 dígitos
-    // const randomPart = Math.floor(1000 + Math.random() * 9000).toString();
-
-    const code = `${year}${month}${day}`;
-
-    return code;
   }
 
   private async extractLitigants(): Promise<Litigant[]> {

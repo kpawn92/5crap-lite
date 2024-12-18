@@ -5,9 +5,19 @@ import { dateCalc } from "./date-calc";
 import { DocumentAnnexPersistHelper } from "./document-persist.helper";
 import { IssueOptions } from "../workers/worker.types";
 
-type MovementHistory = Omit<Movement, "book">;
+export interface Histories {
+  dateProcedure: Date;
+  descProcedure: string;
+  document: string[];
+  invoice: string;
+  page: number;
+  procedure: string;
+  stage: string;
+  guid: string;
+}
 type Folder = Pick<Movement, "procedure" | "descProcedure"> & {
   script: string;
+  guid: string;
 };
 
 export interface AnexRequest {
@@ -16,10 +26,11 @@ export interface AnexRequest {
   reference: string;
   procedure: string;
   descProcedure: string;
+  guid: string;
 }
 
 export class HistoryScrape {
-  private histories: MovementHistory[] = [];
+  private histories: Histories[] = [];
   private folders: Folder[] = [];
   private anexs: AnexRequest[] = [];
 
@@ -69,6 +80,7 @@ export class HistoryScrape {
         });
 
         return {
+          guid: crypto.randomUUID(),
           invoice,
           document: documents,
           stage,
@@ -90,6 +102,7 @@ export class HistoryScrape {
         page: item.page,
         procedure: item.procedure,
         stage: item.stage,
+        guid: item.guid,
       }))
     );
 
@@ -100,6 +113,7 @@ export class HistoryScrape {
           descProcedure: item.descProcedure,
           procedure: item.procedure,
           script: item.folder,
+          guid: item.guid,
         }))
     );
 
@@ -189,6 +203,7 @@ export class HistoryScrape {
         document: item.document,
         procedure: folder.procedure,
         reference: item.reference,
+        guid: folder.guid,
       }));
     } catch (error) {
       console.log(error);
