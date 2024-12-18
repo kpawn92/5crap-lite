@@ -1,43 +1,3 @@
-// import * as fs from "node:fs";
-// import path from "node:path";
-
-// export class FileSystemService {
-//   private readonly documentPath = path.join(__dirname, "/../../documents");
-
-//   constructor() {
-//     this.createPath();
-//   }
-
-//   private createPath() {
-//     this.checkPath(this.documentPath);
-//   }
-
-//   private checkPath(pathName: string) {
-//     if (!fs.existsSync(pathName)) {
-//       fs.mkdirSync(pathName, { recursive: true });
-//     }
-//   }
-
-//   writeDocumentByCause(pdfArray: number[], subPath: string, filename: string) {
-//     const destination = path.join(this.documentPath, subPath);
-//     this.checkPath(destination);
-//     const buff = Buffer.from(pdfArray);
-//     const filePath = path.join(destination, `${filename}.pdf`);
-//     fs.writeFileSync(filePath, buff);
-//   }
-
-//   save(pdfArray: number[], filename: string) {
-//     const filePath = `${this.documentPath}/${filename}.pdf`;
-//     const buffer = Buffer.from(pdfArray);
-//     fs.writeFileSync(filePath, buffer);
-//   }
-
-//   write(data: Array<any>, document = "civil") {
-//     const jsonString = JSON.stringify(data, null, 2);
-//     fs.writeFileSync(`${document}.document.json`, jsonString);
-//   }
-// }
-
 import * as fs from "fs";
 import * as path from "path";
 import {
@@ -79,21 +39,20 @@ export class FileSystemService {
   private readonly bucket?: string;
 
   constructor(options?: FileSystemServiceOptions) {
-    this.isCloud = options?.isCloud || true;
+    this.isCloud = options?.isCloud || false;
     this.documentPath = path.join(__dirname, "/../../documents");
 
     if (this.isCloud) {
-      if (!options?.cloudConfig) throw "S3 undefined";
-      const { endpoint, region, bucket, accessKeyId, secretAccessKey } =
-        options.cloudConfig;
-      this.bucket = bucket;
+      // if (!options?.cloudConfig) throw "S3 undefined";
+      // const { endpoint, region, bucket, accessKeyId, secretAccessKey } = options.cloudConfig;
+      this.bucket = process.env.DO_SPACES_BUCKET!;
 
       this.s3Client = new S3Client({
-        endpoint,
-        region,
+        endpoint: process.env.DO_SPACES_URL!,
+        region: process.env.DO_SPACES_REGION!,
         credentials: {
-          accessKeyId,
-          secretAccessKey,
+          accessKeyId: process.env.DO_SPACES_ID_KEY!,
+          secretAccessKey: process.env.DO_SPACES_SECRET_KEY!,
         },
       });
     } else {

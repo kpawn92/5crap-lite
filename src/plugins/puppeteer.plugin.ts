@@ -2,6 +2,8 @@ import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer-extra";
 import { envs } from "./env.plugin";
 import EventEmitter from "events";
+import { getProxies } from "./proxies-free";
+import { generateRandomUA } from "./user-agent";
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 
@@ -14,12 +16,37 @@ export class ScrapService extends EventEmitter {
   }
 
   async init(url = "https://oficinajudicialvirtual.pjud.cl/home/index.php") {
+    // const proxy = "139.178.66.227:10004";
+    // const proxy = "172.191.74.198:8080";
+
+    const customUA = generateRandomUA();
+
+    // const proxies = await getProxies();
+    // const proxy = proxies[Math.floor(Math.random() * proxies.length)];
+    // console.log("Proxies: ", proxies);
+    // console.log("Proxy: ", proxy);
+
     this.browser = await puppeteer.launch({
-      headless: false,
+      headless: envs.BROWSER_HEADLESS,
       defaultViewport: null,
       slowMo: 400,
+      // args: [
+      //   `--proxy-server=${proxy}`,
+      //   `--ignore-certificate-errors`,
+      //   `--no-sandbox`,
+      //   `--disable-setuid-sandbox`,
+      // ],
     });
     this.page = await this.browser.newPage();
+    // await this.page.setUserAgent(customUA);
+    await this.page.setExtraHTTPHeaders({
+      "user-agent": `${customUA}`,
+      // "upgrade-insecure-requests": "1",
+      accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
+      "accept-encoding": "gzip, deflate, br",
+      "accept-language": "en-US,en;q=0.9,en;q=0.8",
+    });
 
     //? Modify navigator.webdriver before load page.
     await this.page.evaluateOnNewDocument(() => {
@@ -38,7 +65,7 @@ export class ScrapService extends EventEmitter {
   }
 
   private async invalidLoadImages() {
-    // //? No cargar las imagenes
+    //? No cargar las imagenes
     await this.page?.setRequestInterception(true);
     return this.page?.on("request", async (request) => {
       if (request.resourceType() == "image") {

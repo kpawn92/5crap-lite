@@ -1,5 +1,4 @@
 import EventEmitter from "node:events";
-import { dailyDocumentUpdater } from "../../db/daily-updater";
 import { FileSystemService, ScrapService } from "../../plugins";
 import { wait } from "../../plugins/wait";
 import {
@@ -12,8 +11,10 @@ import {
 import { codeUnique } from "../helpers/code-calc";
 import { dateCalc } from "../helpers/date-calc";
 import { DocumentAllHelper } from "../helpers/document-all.helper";
+import { AnnexReturn } from "../helpers/document-persist.helper";
 import { HistoryScrape } from "../helpers/history-scrape";
 import { parseStringToCode } from "../parse-string";
+import { CauseCivilDocument } from "../../db";
 
 export interface FiltersDaily {
   day: number;
@@ -23,20 +24,12 @@ export interface FiltersDaily {
 
 export type Doc = Documentation & { rol: string };
 
-interface Annex {
-  documents: string[];
-  cause: string;
-}
-
 export class Daily extends EventEmitter {
   private anchors: Anchor[] = [];
   private civils: CauseCivilPrimitives[] = [];
-  private annex: Annex[] = [];
+  private annex: AnnexReturn[] = [];
 
-  constructor(
-    private readonly scrape: ScrapService,
-    private readonly storage: FileSystemService
-  ) {
+  constructor(private readonly scrape: ScrapService) {
     super();
     this.on("dailyAnchorsEmpty", (msg) => {
       console.log(msg);
@@ -218,10 +211,8 @@ export class Daily extends EventEmitter {
   }
   async collectDocuments() {
     const docAll = new DocumentAllHelper(
-      dailyDocumentUpdater,
-      this.page,
-      this.storage,
-      this.getURLs().map((item) => this.evaluateDocument(item))
+      this.URLs.map((item) => this.evaluateDocument(item)),
+      "daily"
     );
     await docAll.documentationEvaluate();
   }
@@ -239,7 +230,7 @@ export class Daily extends EventEmitter {
     };
   };
 
-  private getURLs(): Doc[] {
+  private get URLs(): Doc[] {
     const documents: Doc[] = [];
 
     this.civils.forEach((cause) => {
@@ -260,26 +251,23 @@ export class Daily extends EventEmitter {
     return documents;
   }
 
-  public get ccivils(): CauseCivilPrimitives[] {
+  public get ccivils(): CauseCivilDocument[] {
     return this.civils.map((cause) => ({
       ...cause,
       movementsHistory: cause.movementsHistory.map(
-        ({ document, ...history }) => ({
+        ({ document, guid, ...history }) => ({
           ...history,
-          document: document
-            .map((_doc, idx) => {
-              return `${parseStringToCode(
+          document: document.map((_doc, idx) => {
+            return {
+              name: `${history.procedure} ${history.descProcedure}`,
+              file: `${parseStringToCode(
                 history.procedure
               )}_${parseStringToCode(history.descProcedure)}_${codeUnique(
                 history.dateProcedure
-              )}_${idx}.pdf`;
-            })
-            .concat(
-              this.annex
-                .filter((item) => item.cause === cause.rol)
-                .map((item) => item.documents.map((doc) => `${doc}.pdf`))
-                .flat()
-            ),
+              )}_${idx}.pdf`,
+              annexs: this.annex.filter((item) => item.guid === guid),
+            };
+          }),
         })
       ),
     }));
@@ -312,20 +300,16 @@ export class Daily extends EventEmitter {
       throw error;
     }
   }
-
   private async extractMovementsHistory(
     cause: string
   ): Promise<Omit<Movement, "book">[]> {
     try {
       await this.scrape.waitForSelector("div#loadHistCuadernoCiv", 5000);
-      const historyScrape = new HistoryScrape(this.page, cause, this.storage);
+      const historyScrape = new HistoryScrape(this.page, cause, "daily");
 
-      const annexDocs = await historyScrape.start(dailyDocumentUpdater);
+      const annexDocs = await historyScrape.start();
 
-      this.annex.push({
-        cause,
-        documents: annexDocs,
-      });
+      this.annex.push(...annexDocs);
 
       const movements = historyScrape.getmovementsHistories();
       return movements;
@@ -334,14 +318,12 @@ export class Daily extends EventEmitter {
       throw error;
     }
   }
-
   private async closeModal() {
     return this.page.evaluate(() => {
       const close = document.querySelector<HTMLButtonElement>("button.close");
       close?.click();
     });
   }
-
   private get page() {
     return this.scrape.getPage();
   }

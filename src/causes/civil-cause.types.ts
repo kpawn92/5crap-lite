@@ -17,6 +17,7 @@ export interface CauseCivilPrimitives {
 }
 
 export interface Movement {
+  guid: string;
   invoice: string;
   document: string[];
   stage: string;

@@ -1,4 +1,4 @@
-import { CauseCivil } from "../db";
+import { CauseCivil, CauseCivilDocument } from "../db";
 import { ccaseDocumentUpdater } from "../db/ccause-updater";
 import { FileSystemService, ScrapService } from "../plugins";
 import { CivilCauseDetail } from "./civil-cause.detail";
@@ -10,6 +10,11 @@ import {
   Movement,
 } from "./civil-cause.types";
 import { CivilCauseExtractFailed } from "./civil-extract-doc.failed";
+import { Doc } from "./daily-status/daily";
+import { codeUnique } from "./helpers/code-calc";
+import { dateCalc } from "./helpers/date-calc";
+import { DocumentAllHelper } from "./helpers/document-all.helper";
+import { AnnexReturn } from "./helpers/document-persist.helper";
 import { HistoryScrape } from "./helpers/history-scrape";
 import { parseStringToCode } from "./parse-string";
 
@@ -25,7 +30,7 @@ export class CivilCauseRolCollectScrape {
   public hasUpdate: boolean = false;
   private causeTemp: string = "";
   private failedDocs: Documentation[] = [];
-  public annex: string[] = [];
+  public annex: AnnexReturn[] = [];
 
   constructor(
     private readonly scrap: ScrapService,
@@ -179,22 +184,28 @@ export class CivilCauseRolCollectScrape {
     }
   }
 
-  public getCauseCivil(): CauseCivilPrimitives {
+  public getCauseCivil(): CauseCivilDocument {
     const civilcause = this.civils[0];
 
     return {
       ...civilcause,
       litigants: this.litigants,
-      movementsHistory: this.histories.map((history) => ({
-        ...history,
-        document: history.document
-          .map((_doc, index) => {
-            return `${parseStringToCode(history.procedure)}_${parseStringToCode(
-              history.descProcedure
-            )}_${this.codeUnique(history.dateProcedure)}_${index}.pdf`;
-          })
-          .concat(this.annex.map((item) => `${item}.pdf`)),
-      })),
+      movementsHistory: this.histories.map(
+        ({ guid, document, ...history }) => ({
+          ...history,
+          document: document.map((_doc, index) => {
+            return {
+              file: `${parseStringToCode(
+                history.procedure
+              )}_${parseStringToCode(history.descProcedure)}_${codeUnique(
+                history.dateProcedure
+              )}_${index}.pdf`,
+              name: `${history.procedure} ${history.descProcedure}`,
+              annexs: this.annex.filter((item) => item.guid === guid),
+            };
+          }),
+        })
+      ),
     };
   }
 
@@ -252,16 +263,26 @@ export class CivilCauseRolCollectScrape {
     });
   }
 
-  async collectDocuments(tempURLs?: Documentation[]) {
-    const urls = tempURLs || this.getURLs();
-    return this.downloadPDF(urls);
+  async collectDocuments() {
+    const docAll = new DocumentAllHelper(
+      this.URLs.map((item) => this.evaluateDocument(item)),
+      "daily"
+    );
+    await docAll.documentationEvaluate();
   }
 
-  private async downloadPDF(urls: Documentation[]) {
-    console.log(`Starting document download for ${urls.length} documents...`);
-    await Promise.allSettled(urls.map((doc) => this.extractDocument(doc)));
-    console.log("All documents downloaded.");
-  }
+  private evaluateDocument = (doc: Doc) => {
+    const { url, dateProcedure, descProcedure, index, procedure, rol } = doc;
+    const filename = `${parseStringToCode(procedure)}_${parseStringToCode(
+      descProcedure
+    )}_${codeUnique(dateProcedure)}_${index}`;
+
+    return {
+      url,
+      cause: rol,
+      filename,
+    };
+  };
 
   private async collectAnchors(): Promise<void> {
     try {
@@ -336,7 +357,7 @@ export class CivilCauseRolCollectScrape {
 
       return {
         ...causeDetails,
-        admission: this.parseDate(causeDetails.admission),
+        admission: dateCalc(causeDetails.admission),
       };
     } catch (error) {
       console.error("Error extracting cause details:", error);
@@ -348,60 +369,13 @@ export class CivilCauseRolCollectScrape {
     try {
       await this.scrap.waitForSelector("div#loadHistCuadernoCiv", 5000);
 
-      const historyScrape = new HistoryScrape(
-        this.page,
-        this.causeTemp,
-        this.file
-      );
+      const historyScrape = new HistoryScrape(this.page, this.causeTemp, "one");
 
-      const annexDocs = await historyScrape.start(ccaseDocumentUpdater);
+      const annexDocs = await historyScrape.start();
 
       this.annex.push(...annexDocs);
 
       const movements = historyScrape.getmovementsHistories();
-
-      // const movements = await this.page.evaluate(() => {
-      //   const container = document.querySelector<HTMLDivElement>(
-      //     "div#loadHistCuadernoCiv"
-      //   );
-      //   const table = container?.querySelector("table");
-
-      //   const rows = Array.from(table?.querySelectorAll("tbody>tr") || []);
-
-      //   return rows.map((row) => {
-      //     const cells = Array.from(row.querySelectorAll("td"));
-
-      //     const invoice = cells[0]?.textContent?.trim() || "";
-      //     const stage = cells[3]?.textContent?.trim() || "";
-      //     const procedure = cells[4]?.textContent?.trim() || "";
-      //     const descProcedure = cells[5]?.textContent?.trim() || "";
-      //     const dateProcedure = cells[6]?.textContent?.trim() || "";
-      //     const pageNumber = parseInt(cells[7]?.textContent?.trim() || "0", 10);
-
-      //     const documentForms = Array.from(
-      //       cells[1]?.querySelectorAll("form") || []
-      //     );
-      //     const documents = documentForms.map((form) => {
-      //       const action = form.getAttribute("action") || "";
-      //       const input = form.querySelector("input");
-      //       const queryName = input?.getAttribute("name") || "";
-      //       const queryValue = input?.getAttribute("value") || "";
-      //       const url = `${action}?${queryName}=${queryValue}`;
-
-      //       return url;
-      //     });
-
-      //     return {
-      //       invoice,
-      //       document: documents,
-      //       stage,
-      //       procedure,
-      //       descProcedure,
-      //       dateProcedure,
-      //       page: isNaN(pageNumber) ? 0 : pageNumber,
-      //     };
-      //   });
-      // });
 
       return movements;
     } catch (error) {
@@ -457,8 +431,8 @@ export class CivilCauseRolCollectScrape {
     }
   }
 
-  private getURLs(): Documentation[] {
-    const documents: Documentation[] = [];
+  private get URLs(): Doc[] {
+    const documents: Doc[] = [];
 
     this.histories.forEach((movement) => {
       movement.document.forEach((url, index) => {
@@ -468,6 +442,7 @@ export class CivilCauseRolCollectScrape {
           dateProcedure: movement.dateProcedure,
           descProcedure: movement.descProcedure,
           procedure: movement.procedure,
+          rol: this.civils[0].rol,
         });
       });
     });
@@ -475,72 +450,8 @@ export class CivilCauseRolCollectScrape {
     return documents;
   }
 
-  private async extractDocument(doc: Documentation) {
-    const { url, dateProcedure, descProcedure, index, procedure } = doc;
-    const filename = `${parseStringToCode(procedure)}_${parseStringToCode(
-      descProcedure
-    )}_${this.codeUnique(dateProcedure)}_${index}`;
-
-    console.log(`Init extract document: ${filename}.pdf`);
-    const pdfArray = await this.extractPDF(url);
-
-    if (!pdfArray) {
-      this.failedDocs.push(doc);
-      return;
-    }
-
-    this.file.writeDocumentByCause(pdfArray, this.causeTemp, filename);
-    console.log("Document collect: ", filename);
-  }
-
-  private async extractPDF(pdfUrl: string) {
-    const pdfBuffer = await this.page.evaluate(async (url) => {
-      try {
-        const response = await fetch(url, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          console.log("Fetch failed with status:", response.status);
-          return null;
-        }
-
-        const buffer = await response.arrayBuffer();
-        return Array.from(new Uint8Array(buffer));
-      } catch (error) {
-        console.log("Error fetching PDF:", error);
-        return null;
-      }
-    }, pdfUrl);
-
-    if (!pdfBuffer) {
-      console.log("No PDF buffer received");
-    }
-
-    return pdfBuffer;
-  }
-
-  private parseDate(dateString: string): Date {
-    const [day, month, year] = dateString
-      .split("/")
-      .map((item) => Number(item));
-    return new Date(year, month - 1, day);
-  }
-
   async finish(): Promise<void> {
     try {
-      this.anchors = [];
-      if (this.failedDocs.length > 0) {
-        await this.collectAnchors();
-        const extractDocFailed = new CivilCauseExtractFailed(
-          this.failedDocs,
-          this.anchors,
-          this.scrap
-        );
-        const docs = await extractDocFailed.getNewsURLs();
-        await this.collectDocuments(docs);
-      }
     } catch (error) {
       console.error("Error saving causes data:", error);
       throw error;
@@ -548,20 +459,6 @@ export class CivilCauseRolCollectScrape {
       await this.scrap.close();
       console.log("Scrap service closed.");
     }
-  }
-
-  private codeUnique(date: Date): string {
-    // Obtener la fecha actual
-    const year = date.getFullYear().toString().slice(-2); // Últimos dos dígitos del año
-    const month = (date.getMonth() + 1).toString().padStart(2, "0"); // Mes con dos dígitos
-    const day = date.getDate().toString().padStart(2, "0"); // Día con dos dígitos
-
-    // Generar un número aleatorio de 4 dígitos
-    // const randomPart = Math.floor(1000 + Math.random() * 9000).toString();
-
-    const code = `${year}${month}${day}`;
-
-    return code;
   }
 
   private get page() {
