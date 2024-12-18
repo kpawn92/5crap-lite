@@ -1,6 +1,6 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-interface CauseCivilPrimitives extends Document {
+export interface CauseCivilDocument {
   rol: string;
   cover: string;
   estAdmin: string;
@@ -16,9 +16,21 @@ interface CauseCivilPrimitives extends Document {
   litigants: Litigant[];
 }
 
+interface Annex {
+  reference: string;
+  date: Date;
+  file: string;
+}
+
+interface Doc {
+  name: string;
+  file: string;
+  annexs: Annex[];
+}
+
 export interface Movement {
   invoice: string;
-  document: string[];
+  document: Doc[];
   stage: string;
   procedure: string;
   book: string;
@@ -34,9 +46,21 @@ export interface Litigant {
   name: string;
 }
 
+const AnnexSchema = new Schema<Annex>({
+  reference: { type: String },
+  file: { type: String },
+  date: { type: Date },
+});
+
+const DocSchema = new Schema<Doc>({
+  name: { type: String },
+  file: { type: String },
+  annexs: { type: [AnnexSchema], required: true },
+});
+
 const MovementSchema = new Schema<Movement>({
   invoice: { type: String },
-  document: { type: [String] },
+  document: { type: [DocSchema], required: true },
   stage: { type: String },
   procedure: { type: String },
   book: { type: String },
@@ -52,7 +76,7 @@ const LitigantSchema = new Schema<Litigant>({
   name: { type: String },
 });
 
-const CauseCivilSchema = new Schema<CauseCivilPrimitives>(
+const CauseCivilSchema = new Schema<CauseCivilDocument>(
   {
     rol: { type: String },
     cover: { type: String },
@@ -73,12 +97,12 @@ const CauseCivilSchema = new Schema<CauseCivilPrimitives>(
   }
 );
 
-export const CauseCivil = mongoose.model<CauseCivilPrimitives>(
+export const CauseCivil = mongoose.model<CauseCivilDocument>(
   "CauseCivil",
   CauseCivilSchema
 );
 
-export const CauseCivilUpdater = mongoose.model<CauseCivilPrimitives>(
+export const CauseCivilUpdater = mongoose.model<CauseCivilDocument>(
   "CauseCivilUpdater",
   CauseCivilSchema
 );

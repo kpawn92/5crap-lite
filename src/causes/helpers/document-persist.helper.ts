@@ -7,6 +7,13 @@ import { IssueOptions } from "../workers/worker.types";
 import { codeUnique } from "./code-calc";
 import { AnexRequest } from "./history-scrape";
 
+export interface AnnexReturn {
+  file: string;
+  reference: string;
+  date: Date;
+  guid: string;
+}
+
 export class DocumentAnnexPersistHelper {
   constructor(
     private readonly cause: string,
@@ -15,10 +22,15 @@ export class DocumentAnnexPersistHelper {
   ) {}
 
   makeFilenames() {
-    const docs: string[] = [];
+    const docs: AnnexReturn[] = [];
 
     this.annexs.forEach((item) => {
-      docs.push(this.evaluateAnnex(item).filename);
+      docs.push({
+        file: this.evaluateAnnex(item).filename,
+        reference: item.reference,
+        date: item.date,
+        guid: item.guid,
+      });
     });
 
     return docs;

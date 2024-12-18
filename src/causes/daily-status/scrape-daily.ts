@@ -1,16 +1,15 @@
-import { FileSystemService, ScrapService } from "../../plugins";
-import { CauseCivilPrimitives } from "../civil-cause.types";
+import { CauseCivilDocument } from "../../db";
+import { ScrapService } from "../../plugins";
 import { Daily, FiltersDaily } from "./daily";
 
-type Repository = (ccvivils: CauseCivilPrimitives[]) => Promise<void>;
+type Repository = (ccvivils: CauseCivilDocument[]) => Promise<void>;
 
 export const scrapeDaily = async (
   filters: FiltersDaily,
   repository: Repository
 ) => {
   const scrape = new ScrapService();
-  const storage = new FileSystemService();
-  const daily = new Daily(scrape, storage);
+  const daily = new Daily(scrape);
 
   await scrape.init();
   await daily.rawData(filters);

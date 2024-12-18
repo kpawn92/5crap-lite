@@ -22,7 +22,7 @@ export const scrapCivilOne = async (rol: string) => {
     }
 
     console.log("Process finish");
-    process.exit();
+    // process.exit();
   } catch (error) {
     console.error(error);
     process.exit();
