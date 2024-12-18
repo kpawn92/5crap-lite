@@ -6,4 +6,5 @@ dist/
 public/
 production.md
 *.txt
+*.md
 
