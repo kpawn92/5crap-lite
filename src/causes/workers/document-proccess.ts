@@ -7,7 +7,7 @@ import { DownloadOptions } from "./worker-launch-document";
 
 export async function processDocuments(
   documents: DownloadOptions[],
-  updater: UpdateRepository
+  updater: (cause: string, filename: string) => Promise<void>
 ) {
   const batchSize = 10; // Tamaño del lote
   const delayMs = 3000; // Tiempo de espera entre lotes
@@ -22,6 +22,7 @@ export async function processDocuments(
       console.log("Response code fetching: ", response.code, filename);
 
       if (response.code !== 200) {
+        console.log("Response failed: ", response.code);
         await updater(cause, filename);
       }
 

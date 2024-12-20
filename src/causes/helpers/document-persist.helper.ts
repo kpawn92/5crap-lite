@@ -43,7 +43,8 @@ export class DocumentAnnexPersistHelper {
 
     runWorkerDocument(
       this.annexs.map((item) => this.evaluateAnnex(item)),
-      this.issue
+      this.issue,
+      "annex"
     );
 
     console.log("Worker corriendo con las evaluaciones de los anexos...");

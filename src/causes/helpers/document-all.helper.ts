@@ -17,7 +17,7 @@ export class DocumentAllHelper {
     console.table(
       this.documents.map(({ cause, filename }) => ({ cause, filename }))
     );
-    runWorkerDocument(this.documents, this.issue);
+    runWorkerDocument(this.documents, this.issue, "doc");
     console.log("Worker corriendo con las evaluaciones de los documentos...");
   }
 }

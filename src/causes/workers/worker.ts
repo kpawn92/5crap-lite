@@ -3,7 +3,8 @@ import { processDocuments } from "./document-proccess";
 import { DownloadOptions } from "./worker-launch-document";
 import { dailyDocumentUpdater } from "../../db/daily-updater";
 import { ccaseDocumentUpdater } from "../../db/ccause-updater";
-import type { IssueOptions } from "./worker.types";
+import type { IssueOptions, ModeDocument } from "./worker.types";
+import { updateRepository } from "../../db/document-updater";
 
 if (!parentPort) {
   throw new Error("This file must be run as a Worker.");
@@ -11,15 +12,19 @@ if (!parentPort) {
 
 parentPort.on(
   "message",
-  async (data: { documents: DownloadOptions[]; issue: IssueOptions }) => {
-    const { documents, issue } = data;
+  async (data: {
+    documents: DownloadOptions[];
+    issue: IssueOptions;
+    mode: ModeDocument;
+  }) => {
+    const { documents, issue, mode } = data;
     console.log("Cantidad de documents: ", documents.length);
     console.log("Dentro del worker");
 
     try {
       await processDocuments(documents, async (rol, filename) => {
-        issue === "daily" && (await dailyDocumentUpdater(rol, filename));
-        issue === "one" && (await ccaseDocumentUpdater(rol, filename));
+        console.log(`Init update : ${filename}`);
+        updateRepository(rol, filename, mode, issue);
       });
 
       parentPort?.postMessage({ status: "success" });
