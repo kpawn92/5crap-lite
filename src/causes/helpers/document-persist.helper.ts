@@ -26,7 +26,7 @@ export class DocumentAnnexPersistHelper {
 
     this.annexs.forEach((item) => {
       docs.push({
-        file: this.evaluateAnnex(item).filename,
+        file: `${this.evaluateAnnex(item).filename}.pdf`,
         reference: item.reference,
         date: item.date,
         guid: item.guid,
