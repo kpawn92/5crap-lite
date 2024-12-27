@@ -1,48 +1,55 @@
-import { dailyDocumentUpdater } from "../../db/daily-updater";
-import { UpdateRepository } from "../../db/db.types";
 import { FileSystemService } from "../../plugins";
-import { wait } from "../../plugins/wait";
 import { fetchDocument } from "./document-fetch";
 import { DownloadOptions } from "./worker-launch-document";
 
 export async function processDocuments(
   documents: DownloadOptions[],
-  updater: (cause: string, filename: string) => Promise<void>
-) {
-  const batchSize = 10; // Tamaño del lote
-  const delayMs = 3000; // Tiempo de espera entre lotes
+  updater: (cause: string, filename: string) => Promise<void>,
+  config: { batchSize?: number; delayMs?: number } = {}
+): Promise<void> {
+  const { batchSize = 10, delayMs = 500 } = config;
   const storage = new FileSystemService();
 
-  const processBatch = async (batch: DownloadOptions[]) => {
-    for (const doc of batch) {
-      const { url, filename, cause } = doc;
+  const processDocument = async (doc: DownloadOptions): Promise<void> => {
+    const { url, filename, cause } = doc;
+    console.log(`Starting document processing: ${filename}`);
 
-      console.log("Init extract: ", filename);
+    try {
       const response = await fetchDocument(url);
-      console.log("Response code fetching: ", response.code, filename);
+      console.log(`Response for ${filename}: ${response.code}`);
 
       if (response.code !== 200) {
-        console.log("Response failed: ", response.code);
-        await updater(cause, filename);
+        console.warn(`Failed to fetch ${filename}, code: ${response.code}`);
+        await updater(cause, filename); // Notificar el fallo al updater
+        return;
       }
 
-      if (response.code === 200) {
-        storage.writeDocumentByCause(response.buffer, cause, filename);
-        console.log(`Saved document: ${filename}.pdf`);
-      }
+      storage.writeDocumentByCause(response.buffer, cause, filename);
+      console.log(`Document saved successfully: ${filename}`);
+    } catch (error) {
+      console.error(`Error processing ${filename}:`, error);
+      await updater(cause, filename); // Notificar errores inesperados
     }
   };
 
-  // Divide los documentos en lotes y procesa cada uno con un retraso
+  const processBatch = async (batch: DownloadOptions[]): Promise<void> => {
+    console.log(`Processing batch of ${batch.length} documents`);
+    await Promise.allSettled(batch.map((item) => processDocument(item)));
+    console.log(`Batch processed successfully`);
+  };
+
+  // Procesar documentos en lotes
   for (let i = 0; i < documents.length; i += batchSize) {
-    const batch = documents.slice(i, i + batchSize); // Obtiene el lote actual
-    console.log(`Processing batch ${Math.ceil(i / batchSize) + 1}`);
-    await processBatch(batch); // Procesa el lote
-    if (i + batchSize < documents.length) {
-      console.log(`Waiting ${delayMs / 1000} seconds before the next batch...`);
-      await wait(delayMs); // Introduce el retraso
+    const batch = documents.slice(i, i + batchSize);
+
+    console.log(`Starting batch ${Math.ceil(i / batchSize) + 1}`);
+    await processBatch(batch);
+
+    if (delayMs > 0 && i + batchSize < documents.length) {
+      console.log(`Waiting for ${delayMs / 1000} seconds before next batch...`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
 
-  console.log("All documents processed.");
+  console.log("All documents processed successfully.");
 }

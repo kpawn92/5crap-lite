@@ -18,27 +18,32 @@ export const updateRepository: UpdateRepository = async (
       throw new Error(`CauseCivilDocument with rol ${rol} not found`);
     }
 
-    // Recorre los movimientos para eliminar el archivo específico según `issue`
-    causeCivilDocument.movementsHistory.forEach((movement) => {
-      movement.document.forEach((doc) => {
-        if (mode === "doc") {
-          // Elimina el documento si el archivo coincide con `filename`
-          movement.document = movement.document.filter(
-            (document) => document.file !== filename
-          );
-        } else if (mode === "annex") {
-          // Elimina el anexo si el archivo coincide con `filename`
-          doc.annexs = doc.annexs.filter((annex) => annex.file !== filename);
-        }
+    // Filtrar documentos y anexos basados en el modo
+    causeCivilDocument.movementsHistory =
+      causeCivilDocument.movementsHistory.map((movement) => {
+        const updatedDocuments = movement.document.filter((doc) => {
+          if (mode === "doc") {
+            // Retorna solo los documentos cuyo archivo no coincide con `filename`
+            return doc.file !== filename;
+          } else if (mode === "annex") {
+            // Filtra los anexos dentro del documento
+            doc.annexs = doc.annexs.filter((annex) => annex.file !== filename);
+            return true; // Mantiene el documento incluso si los anexos cambian
+          }
+          return true; // Si no es ni "doc" ni "annex", no elimina nada
+        });
+
+        return {
+          ...movement,
+          document: updatedDocuments,
+        };
       });
-    });
 
     // Guarda el documento actualizado en la base de datos
     await causeCivilDocument.save();
 
-    console.log(`Files updated successfully for rol ${rol} and issue ${issue}`);
+    console.log(`Files deleted successfully for rol ${rol} and issue ${issue}`);
   } catch (error) {
-    console.error("Error updating files:", error);
-    throw error;
+    console.error("Error deleting files:", error);
   }
 };

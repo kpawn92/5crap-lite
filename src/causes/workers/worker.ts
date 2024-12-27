@@ -1,10 +1,8 @@
 import { parentPort } from "node:worker_threads";
+import { updateRepository } from "../../db/document-updater";
 import { processDocuments } from "./document-proccess";
 import { DownloadOptions } from "./worker-launch-document";
-import { dailyDocumentUpdater } from "../../db/daily-updater";
-import { ccaseDocumentUpdater } from "../../db/ccause-updater";
 import type { IssueOptions, ModeDocument } from "./worker.types";
-import { updateRepository } from "../../db/document-updater";
 
 if (!parentPort) {
   throw new Error("This file must be run as a Worker.");
