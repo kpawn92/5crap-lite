@@ -1,27 +1,42 @@
 import { scrapeDaily } from "./causes/daily-status/scrape-daily";
+import { DEFAULT_TIMEOUT_PROCESS } from "./causes/helpers/const";
 import { CauseCivilUpdater, MongoDatabase } from "./db";
 import { envs } from "./plugins";
 
 export const run = async () => {
-  await MongoDatabase.connect({
-    url: envs.MONGO_URI,
-    dbName: envs.MONGO_DB_NAME,
-  });
+  try {
+    console.log("Connecting to MongoDB...");
+    await MongoDatabase.connect({
+      url: envs.MONGO_URI,
+      dbName: envs.MONGO_DB_NAME,
+    });
 
-  await scrapeDaily({ day: 23, month: 10, year: 2024 }, async (rawData) => {
-    await Promise.all(
-      rawData.map(
-        async (cause) =>
-          await CauseCivilUpdater.replaceOne({ rol: cause.rol }, cause, {
-            upsert: true,
-          })
-      )
-    );
-    console.log("Civils cases saved successfully");
-  });
+    console.log("Starting scrapeDaily process...");
+    await scrapeDaily({ day: 23, month: 10, year: 2024 }, async (rawData) => {
+      console.log(`Processing ${rawData.length} civil cases...`);
+      await Promise.all(
+        rawData.map(
+          async (cause) =>
+            await CauseCivilUpdater.replaceOne({ rol: cause.rol }, cause, {
+              upsert: true,
+            })
+        )
+      );
+      console.log("Civils cases saved successfully");
+    });
 
-  console.log("Proccess daily query finally...");
-  // process.exit();
+    console.log("Process daily query completed.");
+  } catch (error) {
+    console.error(error);
+    process.exit();
+  } finally {
+    const timeout = setTimeout(() => {
+      console.log("Closing of the process...");
+      process.exit(0);
+    }, DEFAULT_TIMEOUT_PROCESS);
+
+    timeout.unref();
+  }
 };
 
 run();

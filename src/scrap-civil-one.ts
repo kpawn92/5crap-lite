@@ -1,4 +1,5 @@
 import { cause } from "./causes";
+import { DEFAULT_TIMEOUT_PROCESS } from "./causes/helpers/const";
 import { CauseCivil, MongoDatabase } from "./db";
 import { envs } from "./plugins";
 
@@ -26,6 +27,13 @@ const scrapCivilOne = async (rol: string) => {
   } catch (error) {
     console.error(error);
     process.exit();
+  } finally {
+    const timeout = setTimeout(() => {
+      console.log("Closing of the process...");
+      process.exit(0);
+    }, DEFAULT_TIMEOUT_PROCESS);
+
+    timeout.unref();
   }
 };
 

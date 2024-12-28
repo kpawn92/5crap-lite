@@ -22,13 +22,16 @@ parentPort.on(
     try {
       await processDocuments(documents, async (rol, filename) => {
         console.log(`Init update : ${filename}`);
-        updateRepository(rol, filename, mode, issue);
+        await updateRepository(rol, filename, mode, issue);
       });
 
       parentPort?.postMessage({ status: "success" });
     } catch (error) {
       if (error instanceof Error)
         parentPort?.postMessage({ status: "error", error: error.message });
+    } finally {
+      // Limpieza: cierra el puerto del Worker para liberar recursos
+      parentPort?.close();
     }
   }
 );
