@@ -4,6 +4,7 @@ import { Movement } from "../civil-cause.types";
 import { dateCalc } from "./date-calc";
 import { DocumentAnnexPersistHelper } from "./document-persist.helper";
 import { IssueOptions } from "../workers/worker.types";
+import { DEFAULT_TIMEOUT } from "./const";
 
 export interface Histories {
   dateProcedure: Date;
@@ -156,7 +157,7 @@ export class HistoryScrape {
       }, folder.script);
 
       await page.waitForSelector('div[class="modal in"]', {
-        timeout: 5 * 60 * 1000,
+        timeout: DEFAULT_TIMEOUT,
         visible: true,
       });
       await wait(4000);
@@ -206,7 +207,12 @@ export class HistoryScrape {
         guid: folder.guid,
       }));
     } catch (error) {
-      console.log(error);
+      console.warn(
+        "Error al renderizar el modal del anexo",
+        HistoryScrape.prototype.rawDataFolder.name
+      );
+      if (error instanceof TypeError) console.warn(error.message);
+      if (error instanceof Error) console.warn(error.message);
       return [];
     }
   }
