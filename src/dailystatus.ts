@@ -1,5 +1,4 @@
 import { scrapeDaily } from "./causes/daily-status/scrape-daily";
-import { DEFAULT_TIMEOUT_PROCESS } from "./causes/helpers/const";
 import { CauseCivilUpdater, MongoDatabase } from "./db";
 import { envs } from "./plugins";
 
@@ -29,13 +28,6 @@ export const run = async () => {
   } catch (error) {
     console.error(error);
     process.exit();
-  } finally {
-    const timeout = setTimeout(() => {
-      console.log("Closing of the process...");
-      process.exit(0);
-    }, DEFAULT_TIMEOUT_PROCESS);
-
-    timeout.unref();
   }
 };
 
