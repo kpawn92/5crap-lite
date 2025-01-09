@@ -39,7 +39,7 @@ export class FileSystemService {
   private readonly bucket?: string;
 
   constructor(options?: FileSystemServiceOptions) {
-    this.isCloud = options?.isCloud || false;
+    this.isCloud = options?.isCloud || true;
     this.documentPath = path.join(__dirname, "/../../documents");
 
     if (this.isCloud) {
