@@ -15,6 +15,7 @@ import { AnnexReturn } from "../helpers/document-persist.helper";
 import { HistoryScrape } from "../helpers/history-scrape";
 import { parseStringToCode } from "../parse-string";
 import { CauseCivilDocument } from "../../db";
+import { evalStatus } from "../../core/action-status";
 
 export interface FiltersDaily {
   day: number;
@@ -37,12 +38,18 @@ export class Daily extends EventEmitter {
     });
   }
 
-  async rawData(filters: FiltersDaily) {
-    await this.goMyDailyStatus();
-    await this.navToTab();
-    await this.applyFilter(filters);
-    await this.extractAnchors();
-    await this.collectDetails();
+  async rawData(filters: FiltersDaily): Promise<void> {
+    const steps: { fn: () => Promise<void>; name: string }[] = [
+      { fn: () => this.goMyDailyStatus(), name: "Daily.goMyDailyStatus" },
+      { fn: () => this.navToTab(), name: "Daily.navToTab" },
+      { fn: () => this.applyFilter(filters), name: "Daily.applyFilter" },
+      { fn: () => this.extractAnchors(), name: "Daily.extractAnchors" },
+      { fn: () => this.collectDetails(), name: "Daily.collectDetails" },
+    ];
+
+    for (const { fn, name } of steps) {
+      await evalStatus(fn, name);
+    }
   }
 
   private async goMyDailyStatus(): Promise<void> {

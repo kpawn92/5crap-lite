@@ -1,3 +1,4 @@
+import { evalStatus } from "../core/action-status";
 import { CivilCauseRolCollectScrape } from "./civil-cause-rol.collect";
 import { CivilCauseActiveScrape } from "./civil-cause.active";
 
@@ -17,13 +18,37 @@ export class Cause {
   }
 
   async getCivilCauseDetail(rol: string) {
-    await this.civilDetailScrap.init();
-    await this.civilDetailScrap.navigateToCivilCausesTab();
-    await this.civilDetailScrap.applyRolFilter(rol);
-    await this.civilDetailScrap.collectCauses();
-    await this.civilDetailScrap.collectDetails();
-    await this.civilDetailScrap.collectDocuments();
-    await this.civilDetailScrap.finish();
+    const steps: { fn: () => Promise<void>; name: string }[] = [
+      { fn: () => this.civilDetailScrap.init(), name: "CivilDetailScrap.init" },
+      {
+        fn: () => this.civilDetailScrap.navigateToCivilCausesTab(),
+        name: "CivilDetailScrap.navigateToCivilCausesTab",
+      },
+      {
+        fn: () => this.civilDetailScrap.applyRolFilter(rol),
+        name: "CivilDetailScrap.applyRolFilter",
+      },
+      {
+        fn: () => this.civilDetailScrap.collectCauses(),
+        name: "CivilDetailScrap.collectCauses",
+      },
+      {
+        fn: () => this.civilDetailScrap.collectDetails(),
+        name: "CivilDetailScrap.collectDetails",
+      },
+      {
+        fn: () => this.civilDetailScrap.collectDocuments(),
+        name: "CivilDetailScrap.collectDocuments",
+      },
+      {
+        fn: () => this.civilDetailScrap.finish(),
+        name: "CivilDetailScrap.finish",
+      },
+    ];
+
+    for (const { fn, name } of steps) {
+      await evalStatus(fn, name);
+    }
 
     return this.civilDetailScrap.getCauseCivil();
   }

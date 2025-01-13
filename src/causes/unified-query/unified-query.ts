@@ -16,6 +16,7 @@ import { AnnexReturn } from "../helpers/document-persist.helper";
 import { DocumentAllHelper } from "../helpers/document-all.helper";
 import { Doc } from "../daily-status/daily";
 import { dateCalc } from "../helpers/date-calc";
+import { evalStatus } from "../../core/action-status";
 
 export interface UnifiedFilters {
   court: string | number;
@@ -37,15 +38,25 @@ export class UnifiedQuery {
     private readonly storage: FileSystemService
   ) {}
 
-  async factory(filters: UnifiedFilters) {
+  async factory(filters: UnifiedFilters): Promise<void> {
     this.rit = filters.rol;
-    await this.init();
-    await wait(1000);
-    await this.goUnifiedQuery();
-    await this.applyFilter(filters);
-    await this.extractAnchors();
-    await this.collectDetails();
-    await this.collectDocuments();
+
+    const steps: { fn: () => Promise<void>; name: string }[] = [
+      { fn: () => this.init(), name: "UnifiedQuery.init" },
+      { fn: () => wait(1000), name: "UnifiedQuery.wait" },
+      { fn: () => this.goUnifiedQuery(), name: "UnifiedQuery.goUnifiedQuery" },
+      { fn: () => this.applyFilter(filters), name: "UnifiedQuery.applyFilter" },
+      { fn: () => this.extractAnchors(), name: "UnifiedQuery.extractAnchors" },
+      { fn: () => this.collectDetails(), name: "UnifiedQuery.collectDetails" },
+      {
+        fn: () => this.collectDocuments(),
+        name: "UnifiedQuery.collectDocuments",
+      },
+    ];
+
+    for (const { fn, name } of steps) {
+      await evalStatus(fn, name);
+    }
   }
 
   private async init() {
