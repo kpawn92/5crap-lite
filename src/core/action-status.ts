@@ -1,3 +1,4 @@
+import eventManager from "./event";
 import { processService } from "./process.status";
 
 export const evalStatus = async (
@@ -17,6 +18,9 @@ export const evalStatus = async (
       state: "failed",
       error,
     });
+    // Dispatch event
+    eventManager.emit("error-action", { error, process: name });
+
     throw error;
   }
 };

@@ -41,6 +41,11 @@ const eventManager = ExtendableEventManager.getInstance();
 
 // Registrar nodos personalizados
 eventManager.registerListeners({
+  "error-action": ({ error, process }) => {
+    console.warn("[Process]:", process);
+    console.error(error);
+    // --> manejar el error
+  },
   "worker-completed": ({ processName, workerId }) => {
     console.log(
       `[Listener] Worker ${workerId} completed for process ${processName}`
