@@ -1,10 +1,9 @@
-import { parseStringToCode } from "../parse-string";
+import { randomUUID as uuid } from "node:crypto";
 import {
   DownloadOptions,
   runWorkerDocument,
 } from "../workers/worker-launch-document";
 import { IssueOptions } from "../workers/worker.types";
-import { codeUnique } from "./code-calc";
 import { AnexRequest } from "./history-scrape";
 
 export interface AnnexReturn {
@@ -51,10 +50,9 @@ export class DocumentAnnexPersistHelper {
   }
 
   private evaluateAnnex(annex: AnexRequest): DownloadOptions {
-    const { date, descProcedure, document, procedure, reference } = annex;
-    const filename = `${parseStringToCode(procedure)}_${parseStringToCode(
-      descProcedure
-    )}_${codeUnique(date)}_${parseStringToCode(reference)}_anexo`;
+    const { document } = annex;
+
+    const filename = `${uuid()}_anexo`;
     return { filename, url: document, cause: this.cause };
   }
 }

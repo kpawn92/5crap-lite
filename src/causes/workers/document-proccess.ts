@@ -24,7 +24,7 @@ export async function processDocuments(
         return;
       }
 
-      storage.writeDocumentByCause(response.buffer, cause, filename);
+      await storage.writeDocumentByCause(response.buffer, cause, filename);
       console.log(`Document saved successfully: ${filename}`);
     } catch (error) {
       console.error(`Error processing ${filename}:`, error);
